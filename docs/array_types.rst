@@ -28,6 +28,9 @@ Scalars
 .. py:data:: Bool
     :type: type
     :value: bool
+.. py:data:: Float16
+    :type: type
+    :value: half
 .. py:data:: Float
     :type: type
     :value: float
@@ -60,6 +63,18 @@ Scalars
 .. autoclass:: drjit.scalar.Array4b
     :show-inheritance:
 .. autoclass:: drjit.scalar.ArrayXb
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Array0f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Array1f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Array2f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Array3f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Array4f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.ArrayXf16
     :show-inheritance:
 .. autoclass:: drjit.scalar.Array0f
     :show-inheritance:
@@ -142,6 +157,12 @@ Scalars
     :show-inheritance:
 .. autoclass:: drjit.scalar.Array44b
     :show-inheritance:
+.. autoclass:: drjit.scalar.Array22f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Array33f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Array44f16
+    :show-inheritance:
 .. autoclass:: drjit.scalar.Array22f
     :show-inheritance:
 .. autoclass:: drjit.scalar.Array33f
@@ -157,13 +178,23 @@ Scalars
 
 Special (complex numbers, etc.)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: drjit.scalar.Complex2f16
+    :show-inheritance:
 .. autoclass:: drjit.scalar.Complex2f
     :show-inheritance:
 .. autoclass:: drjit.scalar.Complex2f64
     :show-inheritance:
+.. autoclass:: drjit.scalar.Quaternion4f16
+    :show-inheritance:
 .. autoclass:: drjit.scalar.Quaternion4f
     :show-inheritance:
 .. autoclass:: drjit.scalar.Quaternion4f64
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Matrix2f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Matrix3f16
+    :show-inheritance:
+.. autoclass:: drjit.scalar.Matrix4f16
     :show-inheritance:
 .. autoclass:: drjit.scalar.Matrix2f
     :show-inheritance:
@@ -182,6 +213,8 @@ Tensors
 ^^^^^^^
 .. autoclass:: drjit.scalar.TensorXb
     :show-inheritance:
+.. autoclass:: drjit.scalar.TensorXf16
+    :show-inheritance:
 .. autoclass:: drjit.scalar.TensorXf
     :show-inheritance:
 .. autoclass:: drjit.scalar.TensorXu
@@ -194,6 +227,179 @@ Tensors
     :show-inheritance:
 .. autoclass:: drjit.scalar.TensorXi64
     :show-inheritance:
+
+Textures
+^^^^^^^^
+.. autoclass:: drjit.scalar.Texture1f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture2f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture3f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture1f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture2f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture3f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture1f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture1f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.scalar.Texture1f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
 
 Random number generators
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -228,6 +434,8 @@ Scalar
 
 .. autoclass:: drjit.llvm.Bool
     :show-inheritance:
+.. autoclass:: drjit.llvm.Float16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.Float
     :show-inheritance:
 .. autoclass:: drjit.llvm.Float64
@@ -254,6 +462,18 @@ Scalar
 .. autoclass:: drjit.llvm.Array4b
     :show-inheritance:
 .. autoclass:: drjit.llvm.ArrayXb
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Array0f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Array1f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Array2f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Array3f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Array4f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ArrayXf
     :show-inheritance:
 .. autoclass:: drjit.llvm.Array0f
     :show-inheritance:
@@ -351,13 +571,23 @@ Scalar
 
 Special (complex numbers, etc.)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: drjit.llvm.Complex2f16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.Complex2f
     :show-inheritance:
 .. autoclass:: drjit.llvm.Complex2f64
     :show-inheritance:
+.. autoclass:: drjit.llvm.Quaternion4f16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.Quaternion4f
     :show-inheritance:
 .. autoclass:: drjit.llvm.Quaternion4f64
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Matrix2f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Matrix3f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.Matrix4f16
     :show-inheritance:
 .. autoclass:: drjit.llvm.Matrix2f
     :show-inheritance:
@@ -376,6 +606,8 @@ Tensors
 ^^^^^^^
 .. autoclass:: drjit.llvm.TensorXb
     :show-inheritance:
+.. autoclass:: drjit.llvm.TensorXf16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.TensorXf
     :show-inheritance:
 .. autoclass:: drjit.llvm.TensorXu
@@ -388,6 +620,179 @@ Tensors
     :show-inheritance:
 .. autoclass:: drjit.llvm.TensorXi64
     :show-inheritance:
+
+Textures
+^^^^^^^^
+.. autoclass:: drjit.llvm.Texture1f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture2f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture3f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture1f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture2f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture3f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture1f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture2f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.Texture3f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
 
 Random number generators
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -420,6 +825,8 @@ Scalars
 ^^^^^^^
 .. autoclass:: drjit.llvm.ad.Bool
     :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Float16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Float
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Float64
@@ -446,6 +853,16 @@ Scalars
 .. autoclass:: drjit.llvm.ad.Array4b
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.ArrayXb
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array0f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array1f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array2f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array3f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array4f16
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Array0f
     :show-inheritance:
@@ -528,6 +945,12 @@ Scalars
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Array44b
     :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array22f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array33f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Array44f16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Array22f
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Array33f
@@ -543,13 +966,23 @@ Scalars
 
 Special (complex numbers, etc.)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: drjit.llvm.ad.Complex2f16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Complex2f
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Complex2f64
     :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Quaternion4f16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Quaternion4f
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Quaternion4f64
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Matrix2f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Matrix3f16
+    :show-inheritance:
+.. autoclass:: drjit.llvm.ad.Matrix4f16
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.Matrix2f
     :show-inheritance:
@@ -568,6 +1001,8 @@ Tensors
 ^^^^^^^
 .. autoclass:: drjit.llvm.ad.TensorXb
     :show-inheritance:
+.. autoclass:: drjit.llvm.ad.TensorXf16
+    :show-inheritance:
 .. autoclass:: drjit.llvm.ad.TensorXf
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.TensorXu
@@ -580,6 +1015,179 @@ Tensors
     :show-inheritance:
 .. autoclass:: drjit.llvm.ad.TensorXi64
     :show-inheritance:
+
+Textures
+^^^^^^^^
+.. autoclass:: drjit.llvm.ad.Texture1f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture2f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture3f16
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture1f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture2f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture3f
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture1f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture2f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
+
+.. autoclass:: drjit.llvm.ad.Texture3f64
+
+   .. automethod:: __init__
+   .. automethod:: set_value
+   .. automethod:: set_tensor
+   .. automethod:: value
+   .. automethod:: tensor
+   .. automethod:: filter_mode
+   .. automethod:: wrap_mode
+   .. automethod:: use_accel
+   .. automethod:: migrated
+   .. automethod:: shape
+   .. automethod:: eval
+   .. automethod:: eval_fetch
+   .. automethod:: eval_cubic
+   .. automethod:: eval_cubic_grad
+   .. automethod:: eval_cubic_hessian
+   .. automethod:: eval_cubic_helper
 
 Random number generators
 ^^^^^^^^^^^^^^^^^^^^^^^^

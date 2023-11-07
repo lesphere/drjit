@@ -100,7 +100,7 @@ def test05_binop_inplace(t):
     assert a is not c and dr.all(a == t(3, 4, 2))
 
     if dr.is_float_v(t):
-        a = dr.int_array_t(t)(1)
+        a = dr.int32_array_t(t)(1) if dr.is_half_v(t) else dr.int_array_t(t)(1)
         c = a
         a += b
         assert a is not c and type(a) is t and dr.all(a == t(3, 4, 2))

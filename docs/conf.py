@@ -19,6 +19,9 @@ except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     import drjit
 
+def setup(app):
+    app.add_css_file('my_theme.css')
+
 # -- Project information -----------------------------------------------------
 
 project = 'drjit'

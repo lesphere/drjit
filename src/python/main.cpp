@@ -33,6 +33,8 @@
 #include "if_stmt.h"
 #include "misc.h"
 #include "print.h"
+#include "format.h"
+#include "texture.h"
 
 static void set_flag_py(JitFlag flag, bool value) {
     if (flag == JitFlag::Debug) {
@@ -136,6 +138,15 @@ NB_MODULE(drjit_ext, m_) {
         .value("Dirty", VarState::Dirty, doc_VarState_Dirty)
         .value("Symbolic", VarState::Symbolic, doc_VarState_Symbolic)
         .value("Mixed", VarState::Mixed, doc_VarState_Mixed);
+
+    nb::enum_<dr::FilterMode>(m, "FilterMode")
+        .value("Nearest", dr::FilterMode::Nearest)
+        .value("Linear", dr::FilterMode::Linear);
+
+    nb::enum_<dr::WrapMode>(m, "WrapMode")
+        .value("Repeat", dr::WrapMode::Repeat)
+        .value("Clamp", dr::WrapMode::Clamp)
+        .value("Mirror", dr::WrapMode::Mirror);
 
     m.def("has_backend", &jit_has_backend, doc_has_backend);
 

@@ -1,7 +1,7 @@
 import drjit as dr
 import pytest
 
-@pytest.test_arrays('-bool,shape=(*)')
+@pytest.test_arrays('-bool,shape=(*),-float16')
 def test01_gather_simple(t):
     assert dr.all(dr.gather(
         dtype=t,
@@ -128,7 +128,7 @@ def test06_scatter_nested_2(t):
     assert dr.all(buf == [1, 3, 5, 8, 9, 10, 2, 4, 6])
 
 
-@pytest.test_arrays('-bool,shape=(*)')
+@pytest.test_arrays('-bool,shape=(*),-float16')
 def test07_gather_pytree(t):
     x = t([1, 2, 3, 4])
     y = t([5, 6, 7, 8])
@@ -149,7 +149,7 @@ def test07_gather_pytree(t):
     assert dr.all(r.a == t([2, 1]))
 
 
-@pytest.test_arrays('-bool,shape=(*)')
+@pytest.test_arrays('-bool,shape=(*),-float16')
 def test08_scatter_pytree(t):
     x = dr.zeros(t, 4)
     y = dr.zeros(t, 4)

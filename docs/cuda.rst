@@ -9,6 +9,8 @@ Scalars
 ^^^^^^^
 .. autoclass:: drjit.cuda.Bool
     :show-inheritance:
+.. autoclass:: drjit.cuda.Float16
+    :show-inheritance:
 .. autoclass:: drjit.cuda.Float
     :show-inheritance:
 .. autoclass:: drjit.cuda.Float64
@@ -35,6 +37,18 @@ Scalars
 .. autoclass:: drjit.cuda.Array4b
     :show-inheritance:
 .. autoclass:: drjit.cuda.ArrayXb
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Array0f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Array1f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Array2f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Array3f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Array4f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ArrayXf16
     :show-inheritance:
 .. autoclass:: drjit.cuda.Array0f
     :show-inheritance:
@@ -132,13 +146,23 @@ Scalars
 
 Special (complex numbers, etc.)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: drjit.cuda.Complex2f
+.. autoclass:: drjit.cuda.Complex2f16
+    :show-inheritance:
+    autoclass:: drjit.cuda.Complex2f
     :show-inheritance:
 .. autoclass:: drjit.cuda.Complex2f64
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Quaternion4f16
     :show-inheritance:
 .. autoclass:: drjit.cuda.Quaternion4f
     :show-inheritance:
 .. autoclass:: drjit.cuda.Quaternion4f64
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Matrix2f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Matrix3f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.Matrix4f16
     :show-inheritance:
 .. autoclass:: drjit.cuda.Matrix2f
     :show-inheritance:
@@ -156,6 +180,8 @@ Special (complex numbers, etc.)
 Tensors
 ^^^^^^^
 .. autoclass:: drjit.cuda.TensorXb
+    :show-inheritance:
+.. autoclass:: drjit.cuda.TensorXf16
     :show-inheritance:
 .. autoclass:: drjit.cuda.TensorXf
     :show-inheritance:
@@ -201,6 +227,8 @@ Scalars
 ^^^^^^^
 .. autoclass:: drjit.cuda.ad.Bool
     :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Float16
+    :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Float
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Float64
@@ -227,6 +255,18 @@ Scalars
 .. autoclass:: drjit.cuda.ad.Array4b
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.ArrayXb
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array0f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array1f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array2f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array3f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array4f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.ArrayXf16
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Array0f
     :show-inheritance:
@@ -309,6 +349,12 @@ Scalars
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Array44b
     :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array22f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array33f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Array44f16
+    :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Array22f
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Array33f
@@ -324,13 +370,23 @@ Scalars
 
 Special (complex numbers, etc.)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: drjit.cuda.ad.Complex2f16
+    :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Complex2f
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Complex2f64
     :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Quaternion4f16
+    :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Quaternion4f
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Quaternion4f64
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Matrix2f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Matrix3f16
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.Matrix4f16
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.Matrix2f
     :show-inheritance:
@@ -348,6 +404,8 @@ Special (complex numbers, etc.)
 Tensors
 ^^^^^^^
 .. autoclass:: drjit.cuda.ad.TensorXb
+    :show-inheritance:
+.. autoclass:: drjit.cuda.ad.TensorXf16
     :show-inheritance:
 .. autoclass:: drjit.cuda.ad.TensorXf
     :show-inheritance:

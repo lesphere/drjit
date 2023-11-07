@@ -330,7 +330,7 @@ def test10_inplace(t):
     assert str(v1) == "[[3, 5],\n [9, 11]]"
     assert v3 is v1 and v3 is not v2
 
-    if dr.is_float_v(t):
+    if dr.is_float_v(t) and not dr.is_half_v(t):
         ti = dr.int_array_t(t)
 
         v1 = ti([[1, 2], [4, 5]])
