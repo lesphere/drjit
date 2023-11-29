@@ -595,12 +595,6 @@ struct DRJIT_TRIVIAL_ABI DiffArray
 
     size_t size() const { return jit_var_size(m_index); }
 
-    void resize(size_t size) {
-        uint32_t index = jit_var_resize(m_index, size);
-        ad_var_dec_ref(m_index);
-        m_index = index;
-    }
-
     bool grad_enabled_() const {
         if constexpr (IsFloat)
             return (m_index >> 32) != 0;

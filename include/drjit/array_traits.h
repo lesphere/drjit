@@ -251,7 +251,6 @@ template <typename T> constexpr bool is_signed_v = drjit::detail::is_signed_v<sc
 template <typename T> constexpr bool is_unsigned_v = std::is_unsigned_v<scalar_t<T>>;
 template <typename T> constexpr bool is_half_array_v = std::is_same_v<scalar_t<T>, drjit::half> && !is_mask_v<T>;
 
-
 namespace detail {
     template <typename T, typename = int> struct mask {
         using type = bool;

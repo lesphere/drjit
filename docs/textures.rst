@@ -5,7 +5,7 @@ Textures
 
 Dr.Jit further provides the ability to perform texture sampling on array types, 
 with the Python interface exposing half, single and double-precision 
-floating-point textures in 1, 2 and 3 dimensions. A tensor can be supplied 
+floating-point textures in 1, 2 and 3 dimensions. Tensors can be supplied 
 to initialize these textures
 
 .. code-block:: python
@@ -89,28 +89,31 @@ disabling *migration*
 While the default behavior of texture intialization is to set `migrate=True` to
 minimize redundant storage, it's important to note that attempting to fetch
 either the :py:func:`tensor()` or :py:func:`value()` data requires converting a
-CUDA texture object into a tensor and hence a side-effect of these function
+CUDA texture object into a tensor and hence a side effect of these function
 calls is to disable migration.
 
 Automatic differentiation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Suppose we want to compute gradients of a texture lookup with respect to some 
-input tensor
+Suppose we want to compute the gradient of a lookup with respect to the 
+input tensor of a texture
 
 .. code-block:: python
 
-   N, M, ch = 32, 32, 1
-   rng = dr.cuda.ad.PCG32(N * M * ch)
-   values = rng.next_float32()
-   tensor = dr.cuda.ad.TensorXf(values, shape=(N, M, ch))
+   import drjit as dr
+
+   N = 3
+
+   TensorXf = dr.cuda.ad.TensorXf
+   Texture1f = dr.cuda.ad.Texture1f
+   Array1f = dr.cuda.ad.Array1f
+
+   tensor = TensorXf([3,5,8], shape=(N, 1))
 
    dr.enable_grad(tensor)
 
-   tex = dr.cuda.ad.Texture2f(tensor, use_accel=True, migrate=True)
-
-   pos = dr.cuda.ad.Array2f([0.5, 0.2], [0.5, 0.6])
-
-   out = dr.cuda.ad.Array1f(tex.eval(pos))
+   tex = Texture1f(tensor)
+   pos = Array1f(0.4)
+   out = Array1f(tex.eval(pos))
 
    dr.backward(out)
 
@@ -118,11 +121,11 @@ input tensor
 
 In order to propagate gradients, the associated AD graph needs to track the 
 collection of coordinate wrapping, texel fetching and filtering operations that 
-are performed on the underlying tensor as part of sampling. Naively, this may 
-appear to be problematic for hardware-accelerated textures that rely on GPU 
-intrinsics, however such textures are indeed differentiable. Internally, while 
+are performed on the underlying tensor as part of sampling. While 
+hardware-accelerated textures here rely on GPU intrinsics, 
+such textures are indeed still differentiable. Internally, while 
 the primal lookup operation is hardware-accelerated, a subsequent 
-non-accelerated lookup is additionally performed *solely* to record all 
-sampling operations into the AD graph. More importantly, computing gradients 
+non-accelerated lookup is additionally performed *solely* to record each 
+individual operation into the AD graph. More importantly, computing gradients 
 does *not* require disabling migration and texture data can continue to 
 exclusively be stored as a CUDA texture object.

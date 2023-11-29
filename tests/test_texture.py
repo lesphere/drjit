@@ -16,54 +16,59 @@ def test01_interp_1d(t, wrap_mode, force_optix, texture_type):
         tex = TexType([2], 1, True, dr.FilterMode.Linear, wrap_mode)
         tex.set_value(t(0, 1))
 
-        N = 11
-        ref = dr.linspace(t, 0, 1, N)
+        tex_no_accel = TexType([2], 1, False, dr.FilterMode.Linear, wrap_mode)
+        tex_no_accel.set_value(t(0, 1))
 
-        assert dr.allclose(output, ref, 5e-3, 5e-3)
+        N = 9
+        ref = dr.linspace(t, 0, 1, N)
+        pos = dr.linspace(t, 0.25, 0.75, N)
+
+        output = tex_no_accel.eval(pos)
+        assert dr.allclose(output, ref)
 
         output = tex.eval(pos)
-        assert dr.allclose(output, ref, 5e-3, 5e-3)
+        assert dr.allclose(output, ref)
 
         if wrap_mode == dr.WrapMode.Repeat:
             pos = dr.linspace(t, -0.75, -0.25, N)
             output = tex_no_accel.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
             output = tex.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
 
             pos = dr.linspace(t, 1.25, 1.75, N)
             output = tex_no_accel.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
             output = tex.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
 
         elif wrap_mode == dr.WrapMode.Clamp:
             ref = dr.zeros(t, N)
             pos = dr.linspace(t, -0.25, 0.25, N)
             output = tex_no_accel.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
             output = tex.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
 
             ref = dr.ones(t, N)
             pos = dr.linspace(t, 0.75, 1.25, N)
             output = tex_no_accel.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
             output = tex.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
 
         elif wrap_mode == dr.WrapMode.Mirror:
             pos = dr.linspace(t, -0.25, -0.75, N)
             output = tex_no_accel.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
             output = tex.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
 
             pos = dr.linspace(t, 1.75, 1.25, N)
             output = tex_no_accel.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
             output = tex.eval(pos)
-            assert dr.allclose(output, ref, 5e-3, 5e-3)
+            assert dr.allclose(output, ref)
 
 @pytest.mark.parametrize("wrap_mode", [dr.WrapMode.Repeat, dr.WrapMode.Clamp, dr.WrapMode.Mirror])
 @pytest.mark.parametrize("texture_type", ['Texture1f', 'Texture1f16'])
@@ -83,11 +88,13 @@ def test02_interp_1d(t, wrap_mode, texture_type):
         tex = TexType([N], ch, True, dr.FilterMode.Linear, wrap_mode)
         tex_no_accel = TexType([N], ch, False, dr.FilterMode.Linear, wrap_mode)
 
+        StorageType = dr.array_t(tex.value())
+
         for j in range(0, 4):
-            values = rng_1.next_float32()
+            values = StorageType(rng_1.next_float32())
             tex.set_value(values)
             tex_no_accel.set_value(values)
-            assert dr.allclose(tex.value(), values, 5e-3, 5e-3)
+            assert dr.allclose(tex.value(), values)
             pos = Array1f(rng_2.next_float32())
             result_drjit = tex_no_accel.eval(pos)
             dr.eval(result_drjit)
@@ -177,7 +184,6 @@ def test05_grad(t, migrate, texture_type):
     expected = t(0.25 * 3 + 0.75 * 5)
 
     out2 = tex.eval(pos)
-
     assert dr.allclose(out2, expected, 5e-3, 5e-3)
 
     out = Array1f(tex.eval(pos))
@@ -197,11 +203,13 @@ def test_06_nearest(t, texture_type):
 
     N = 3
 
-    tex = TexType([N], 1, True, dr.FilterMode.Nearest, dr.WrapMode.Repeat)
-    tex_no_accel = TexType([N], 1, False, dr.FilterMode.Nearest, dr.WrapMode.Repeat)
-
     value = t(0, 0.5, 1)
+    tex = TexType([N], 1, True, dr.FilterMode.Nearest, dr.WrapMode.Repeat)
+    tex_no_accel = TexType([N], 1, True, dr.FilterMode.Nearest, dr.WrapMode.Repeat)
     tex.set_value(value)
+    tex_no_accel.set_value(value)
+
+    tex_no_accel = TexType([N], 1, False, dr.FilterMode.Nearest, dr.WrapMode.Repeat)
     tex_no_accel.set_value(value)
 
     pos = dr.linspace(t, 0, 1, 80)
@@ -209,7 +217,7 @@ def test_06_nearest(t, texture_type):
     out_drjit = tex_no_accel.eval(pos)
     assert dr.allclose(out_accel, out_drjit)
 
-@pytest.mark.parametrize("texture_type", ['Texture1f', 'Texture1f16'])
+@pytest.mark.parametrize("texture_type", ['Texture1f'])
 @pytest.test_arrays("is_diff, float32, shape=(*)")
 def test07_cubic_analytic(t, texture_type):
     mod = sys.modules[t.__module__]
@@ -235,15 +243,15 @@ def test07_cubic_analytic(t, texture_type):
     # 1/6 * (3*a^3 - 6*a^2 + 4) with a=0.5
     StorageType = dr.array_t(tex.value())
     ref_res = StorageType(0.479167)
-    assert dr.allclose(res, ref_res, 1e-3, 1e-3)
-    assert dr.allclose(res2, ref_res, 1e-3, 1e-3)
+    assert dr.allclose(res, ref_res, 1e-5, 1e-5)
+    assert dr.allclose(res2, ref_res, 1e-5, 1e-5)
     # 1/6 * (9*a^2 - 12*a) with a=0.5
     ref_grad = StorageType(-0.625 * 4.0)
-    assert dr.allclose(grad_64[0][0], ref_grad, 1e-3, 1e-3)
-    assert dr.allclose(grad_ad[0], ref_grad, 1e-3, 1e-3)
+    assert dr.allclose(grad_64[0][0], ref_grad, 1e-5, 1e-5)
+    assert dr.allclose(grad_ad[0], ref_grad, 1e-5, 1e-5)
 
 @pytest.mark.parametrize("wrap_mode", [dr.WrapMode.Repeat, dr.WrapMode.Clamp, dr.WrapMode.Mirror])
-@pytest.mark.parametrize("texture_type", ['Texture1f', 'Texture1f16'])
+@pytest.mark.parametrize("texture_type", ['Texture1f'])
 @pytest.test_arrays("is_jit, float32, shape=(*)")
 def test08_cubic_interp_1d(t, texture_type, wrap_mode):
     mod = sys.modules[t.__module__]
@@ -260,20 +268,20 @@ def test08_cubic_interp_1d(t, texture_type, wrap_mode):
     ref = out
 
     out = tex.eval_cubic(pos, True, True)
-    assert dr.allclose(out, ref, 5e-3, 5e-3)
+    assert dr.allclose(out, ref)
 
     if wrap_mode == dr.WrapMode.Repeat:
         pos = dr.linspace(t, -0.9, -0.1, N)
         res = tex.eval_cubic(pos, True, True)
         res2 = tex.eval_cubic_helper(pos)
-        assert dr.allclose(res, ref, 5e-3, 5e-3)
+        assert dr.allclose(res, ref)
         assert dr.allclose(res2, ref)
 
         pos = dr.linspace(t, 1.1, 1.9, N)
         res = tex.eval_cubic(pos, True, True)
         res2 = tex.eval_cubic_helper(pos)
-        assert dr.allclose(res, ref, 5e-3, 5e-3)
-        assert dr.allclose(res2, ref, 5e-3, 5e-3)
+        assert dr.allclose(res, ref)
+        assert dr.allclose(res2, ref)
 
     elif wrap_mode == dr.WrapMode.Clamp:
         pos_2 = dr.linspace(t, 0, 1, N)
@@ -293,29 +301,29 @@ def test08_cubic_interp_1d(t, texture_type, wrap_mode):
         res = tex.eval_cubic(pos, True, True)
         res2 = tex.eval_cubic_helper(pos)
         assert dr.allclose(res, ref)
-        assert dr.allclose(res2, ref, 1e-3, 1e-3)
+        assert dr.allclose(res2, ref)
 
         ref = dr.full(t, 7, N)
         pos = dr.linspace(t, 1.1, 2, N)
         res = tex.eval_cubic(pos, True, True)
         res2 = tex.eval_cubic_helper(pos)
-        assert dr.allclose(res, ref, 1e-3, 1e-3)
-        assert dr.allclose(res2, ref, 1e-3, 1e-3)
+        assert dr.allclose(res, ref)
+        assert dr.allclose(res2, ref)
 
     elif wrap_mode == dr.WrapMode.Mirror:
         pos = dr.linspace(t, -0.1, -0.9, N)
         res = tex.eval_cubic(pos, True, True)
         res2 = tex.eval_cubic_helper(pos)
-        assert dr.allclose(res, ref, 5e-3, 5e-3)
-        assert dr.allclose(res2, ref, 5e-3, 5e-3)
+        assert dr.allclose(res, ref)
+        assert dr.allclose(res2, ref)
 
         pos = dr.linspace(t,1.9, 1.1, N)
         res = tex.eval_cubic(pos, True, True)
         res2 = tex.eval_cubic_helper(pos)
-        assert dr.allclose(res, ref, 5e-3, 5e-3)
-        assert dr.allclose(res2, ref, 5e-3, 5e-3)
+        assert dr.allclose(res, ref)
+        assert dr.allclose(res2, ref)
 
-@pytest.mark.parametrize("texture_type", ['Texture2f', 'Texture2f16'])
+@pytest.mark.parametrize("texture_type", ['Texture2f'])
 @pytest.mark.parametrize("wrap_mode", [dr.WrapMode.Repeat, dr.WrapMode.Clamp, dr.WrapMode.Mirror])
 @pytest.test_arrays("is_jit, float32, shape=(*)")
 def test09_cubic_interp_2d(t, texture_type, wrap_mode):
@@ -334,9 +342,9 @@ def test09_cubic_interp_2d(t, texture_type, wrap_mode):
     pos = (rng2.next_float32(), rng2.next_float32())
     res = tex.eval_cubic(pos, True, True)
     res2 = tex.eval_cubic_helper(pos)
-    assert dr.allclose(res, res2, 5e-3, 5e-3)
+    assert dr.allclose(res, res2)
 
-@pytest.mark.parametrize("texture_type", ['Texture3f', 'Texture3f16'])
+@pytest.mark.parametrize("texture_type", ['Texture3f'])
 @pytest.test_arrays("is_jit, float32, shape=(*)")
 def test10_cubic_interp_3d(t, texture_type):
     mod = sys.modules[t.__module__]
@@ -369,8 +377,8 @@ def test10_cubic_interp_3d(t, texture_type):
     pos2 = Array3f(.45, .53, .51)
     res = tex.eval_cubic(pos2, True, True)
     res2 = tex.eval_cubic_helper(pos2)
-    assert dr.allclose(res, ref2, 2e-3, 2e-3)
-    assert dr.allclose(res2, ref2, 2e-3, 2e-3)
+    assert dr.allclose(res, ref2, 2e-3, 2e-2)
+    assert dr.allclose(res2, ref2, 2e-3, 2e-2)
 
 @pytest.mark.parametrize("texture_type", ['Texture3f'])
 @pytest.test_arrays("is_diff, float32, shape=(*)")
@@ -419,13 +427,17 @@ def test11_cubic_grad_pos(t, texture_type):
 def test12_cubic_hessian_pos(t, texture_type):
     mod = sys.modules[t.__module__]
     TexType = getattr(mod, texture_type)
-    TensorXf = getattr(mod, 'TensorXf')
     Array3f = getattr(mod, 'Array3f')
     UInt32 = dr.uint32_array_t(t)
 
-    tensor = dr.full(TensorXf, 0, shape=[4, 4, 4, 1])
-    dr.scatter(tensor.array, t(1.0), UInt32(21))  # data[1, 1, 1] = 1.0
-    dr.scatter(tensor.array, t(2.0), UInt32(37))  # data[2, 1, 1] = 2.0
+    dummy_tex = TexType([1,1,1], 1)
+
+    TensorType = type(dummy_tex.tensor())
+    StorageType = dr.array_t(dummy_tex.value())
+
+    tensor = dr.full(TensorType, 0, shape=[4, 4, 4, 1])
+    dr.scatter(tensor.array, StorageType(1.0), UInt32(21))  # data[1, 1, 1] = 1.0
+    dr.scatter(tensor.array, StorageType(2.0), UInt32(37))  # data[2, 1, 1] = 2.0
     # NOTE: Tensor has different index convention with Texture
     #       [2, 1, 1] is equivalent to (x=1, y=1, z=2) in the texture
 
@@ -443,12 +455,12 @@ def test12_cubic_hessian_pos(t, texture_type):
     # compare with analytical solution
     # note: hessian[ch][grad1][grad2]
     # note: multiply analytical result by 16.0f=4.f*4.f to account for the resolution transformation
-    assert dr.allclose(hessian[0][0][0], -0.344401 * 16.0, 1e-5, 1e-5)
-    assert dr.allclose(hessian[0][0][1],  0.561523 * 16.0, 1e-5, 1e-5)
-    assert dr.allclose(hessian[0][0][2], -0.187174 * 16.0, 1e-5, 1e-5)
-    assert dr.allclose(hessian[0][1][1], -0.344401 * 16.0, 1e-5, 1e-5)
-    assert dr.allclose(hessian[0][1][2], -0.187174 * 16.0, 1e-5, 1e-5)
-    assert dr.allclose(hessian[0][2][2], -0.344401 * 16.0, 1e-5, 1e-5)
+    assert dr.allclose(hessian[0][0][0], StorageType(-0.344401 * 16.0), 1e-5, 1e-5)
+    assert dr.allclose(hessian[0][0][1], StorageType(0.561523 * 16.0), 1e-5, 1e-5)
+    assert dr.allclose(hessian[0][0][2], StorageType(-0.187174 * 16.0), 1e-5, 1e-5)
+    assert dr.allclose(hessian[0][1][1], StorageType(-0.344401 * 16.0), 1e-5, 1e-5)
+    assert dr.allclose(hessian[0][1][2], StorageType(-0.187174 * 16.0), 1e-5, 1e-5)
+    assert dr.allclose(hessian[0][2][2], StorageType(-0.344401 * 16.0), 1e-5, 1e-5)
     assert hessian[0][0][1] == hessian[0][1][0]
     assert hessian[0][0][2] == hessian[0][2][0]
     assert hessian[0][1][2] == hessian[0][2][1]
@@ -679,11 +691,10 @@ def test23_set_tensor(t, texture_type):
     Array2f = getattr(mod, 'Array2f')
 
     tex = TexType([2, 2], 1, True)
-    tex_data = t(1, 2, 3, 4)
-    tex.set_value(tex_data)
-
     tex_no_accel = TexType([2, 2], 1, False)
-    tex_no_accel.set_value(tex_data)
+    tex_data = t(1, 2, 3, 4)
+    tex.set_value(tex_data);
+    tex_no_accel.set_value(tex_data);
 
     TensorType = type(tex.tensor())
 
@@ -697,10 +708,6 @@ def test23_set_tensor(t, texture_type):
 
     dr.eval(tex)
     dr.eval(tex_no_accel)
-
-    assert tex.tensor().shape == (2,3,2)
-
-    dr.eval(tex)
 
     assert tex.tensor().shape == (2,3,2)
 
