@@ -5,7 +5,7 @@ Textures
 
 Dr.Jit further provides the ability to perform texture sampling on array types, 
 with the Python interface exposing half, single and double-precision 
-floating-point textures in 1, 2 and 3 dimensions. Tensorial data can be supplied 
+floating-point textures in 1, 2 and 3 dimensions. A tensor can be supplied 
 to initialize these textures
 
 .. code-block:: python
@@ -94,8 +94,8 @@ calls is to disable migration.
 
 Automatic differentiation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Suppose we want to compute gradients of a texture's corresponding tensor with 
-respect to the output of a texture lookup
+Suppose we want to compute gradients of a texture lookup with respect to some 
+input tensor
 
 .. code-block:: python
 

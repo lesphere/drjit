@@ -35,6 +35,8 @@
 #include "print.h"
 #include "format.h"
 #include "texture.h"
+#include "format.h"
+#include "texture.h"
 
 static void set_flag_py(JitFlag flag, bool value) {
     if (flag == JitFlag::Debug) {

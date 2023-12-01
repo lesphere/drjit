@@ -156,11 +156,8 @@ struct Tensor
         for (size_t i = 0; i < ndim; ++i)
             size *= shape[i];
         if (size != m_array.size()) {
-            if (m_array.size() == 1)
-                resize(m_array, size);
-            else
-                drjit_raise("Tensor(): invalid size specified (%zu vs %zu)!",
-                            size, m_array.size());
+            drjit_raise("Tensor(): invalid size specified (%zu vs %zu)!", size, 
+                m_array.size());
         }
     }
 

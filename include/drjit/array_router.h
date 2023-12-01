@@ -1053,7 +1053,7 @@ void scatter(Target &target, const Value &value, const Index &index,
                           depth_v<Target> == 1,
                       "Target argument of scatter operation must either be a "
                       "pointer address or a flat array!");
-        static_assert(is_array_v<Index> && is_integral_v<Index>,
+        static_assert(is_array_v<Index> && is_array_integral_v<Index>,
                       "Second argument of gather operation must be an index array!");
 
         if constexpr (depth_v<Value> == depth_v<Index>) {
@@ -1100,7 +1100,7 @@ void scatter_reduce(ReduceOp op, Target &target, const Value &value,
         static_assert(std::is_pointer_v<std::decay_t<Target>> || depth_v<Target> == 1,
                       "Target argument of scatter_reduce operation must either be a "
                       "pointer address or a flat array!");
-        static_assert(is_array_v<Index> && is_integral_v<Index>,
+        static_assert(is_array_v<Index> && is_array_integral_v<Index>,
                       "Second argument of gather operation must be an index array!");
 
         if constexpr (depth_v<Value> == depth_v<Index>) {

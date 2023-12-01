@@ -18,9 +18,7 @@ def test01_interp_1d(t, wrap_mode, force_optix, texture_type):
 
         N = 11
         ref = dr.linspace(t, 0, 1, N)
-        pos = dr.linspace(t, 0.25, 0.75, N)
 
-        output = tex.eval_nonaccel(pos)
         assert dr.allclose(output, ref, 5e-3, 5e-3)
 
         output = tex.eval(pos)
@@ -28,13 +26,13 @@ def test01_interp_1d(t, wrap_mode, force_optix, texture_type):
 
         if wrap_mode == dr.WrapMode.Repeat:
             pos = dr.linspace(t, -0.75, -0.25, N)
-            output = tex.eval_nonaccel(pos)
+            output = tex_no_accel.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
             output = tex.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
 
             pos = dr.linspace(t, 1.25, 1.75, N)
-            output = tex.eval_nonaccel(pos)
+            output = tex_no_accel.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
             output = tex.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
@@ -42,27 +40,27 @@ def test01_interp_1d(t, wrap_mode, force_optix, texture_type):
         elif wrap_mode == dr.WrapMode.Clamp:
             ref = dr.zeros(t, N)
             pos = dr.linspace(t, -0.25, 0.25, N)
-            output = tex.eval_nonaccel(pos)
+            output = tex_no_accel.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
             output = tex.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
 
             ref = dr.ones(t, N)
             pos = dr.linspace(t, 0.75, 1.25, N)
-            output = tex.eval_nonaccel(pos)
+            output = tex_no_accel.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
             output = tex.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
 
         elif wrap_mode == dr.WrapMode.Mirror:
             pos = dr.linspace(t, -0.25, -0.75, N)
-            output = tex.eval_nonaccel(pos)
+            output = tex_no_accel.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
             output = tex.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
 
             pos = dr.linspace(t, 1.75, 1.25, N)
-            output = tex.eval_nonaccel(pos)
+            output = tex_no_accel.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
             output = tex.eval(pos)
             assert dr.allclose(output, ref, 5e-3, 5e-3)
@@ -83,13 +81,15 @@ def test02_interp_1d(t, wrap_mode, texture_type):
         rng_2 = PCG32(1024)
 
         tex = TexType([N], ch, True, dr.FilterMode.Linear, wrap_mode)
+        tex_no_accel = TexType([N], ch, False, dr.FilterMode.Linear, wrap_mode)
 
         for j in range(0, 4):
             values = rng_1.next_float32()
             tex.set_value(values)
+            tex_no_accel.set_value(values)
             assert dr.allclose(tex.value(), values, 5e-3, 5e-3)
             pos = Array1f(rng_2.next_float32())
-            result_drjit = tex.eval_nonaccel(pos)
+            result_drjit = tex_no_accel.eval(pos)
             dr.eval(result_drjit)
             result_accel = tex.eval(pos)
             dr.eval(result_accel)
@@ -112,12 +112,14 @@ def test03_interp_2d(t, wrap_mode, texture_type):
         rng_2 = PCG32(1024)
 
         tex = TexType([N, M], ch, True, dr.FilterMode.Linear, wrap_mode)
+        tex_no_accel = TexType([N, M], ch, False, dr.FilterMode.Linear, wrap_mode)
 
         for j in range(0, 4):
             values = rng_1.next_float32()
             tex.set_value(values)
+            tex_no_accel.set_value(values)
             pos = Array2f(rng_2.next_float32(), rng_2.next_float32())
-            result_drjit = tex.eval_nonaccel(pos)
+            result_drjit = tex_no_accel.eval(pos)
             dr.eval(result_drjit)
             result_accel = tex.eval(pos)
             dr.eval(result_accel)
@@ -140,12 +142,14 @@ def test04_interp_3d(t, wrap_mode, texture_type):
         rng_2 = PCG32(1024);
 
         tex = TexType([N, M, L], ch, True, dr.FilterMode.Linear, wrap_mode)
+        tex_no_accel = TexType([N, M, L], ch, False, dr.FilterMode.Linear, wrap_mode)
 
         for j in range(0, 4):
             values = rng_1.next_float32()
             tex.set_value(values)
+            tex_no_accel.set_value(values)
             pos = Array3f(rng_2.next_float32(), rng_2.next_float32(), rng_2.next_float32())
-            result_drjit = tex.eval_nonaccel(pos)
+            result_drjit = tex_no_accel.eval(pos)
             dr.eval(result_drjit)
             result_accel = tex.eval(pos)
             dr.eval(result_accel)
@@ -172,12 +176,9 @@ def test05_grad(t, migrate, texture_type):
     pos = Array1f(1 / 6.0 * 0.25 + (1 / 6.0 + 1 / 3.0) * 0.75)
     expected = t(0.25 * 3 + 0.75 * 5)
 
-    # check migration
-    out2 = tex.eval_nonaccel(pos)
-    if migrate and dr.backend_v(t) == dr.JitBackend.CUDA:
-        assert dr.allclose(out2, 0)
-    else:
-        assert dr.allclose(out2, expected, 5e-3, 5e-3)
+    out2 = tex.eval(pos)
+
+    assert dr.allclose(out2, expected, 5e-3, 5e-3)
 
     out = Array1f(tex.eval(pos))
 
@@ -197,12 +198,15 @@ def test_06_nearest(t, texture_type):
     N = 3
 
     tex = TexType([N], 1, True, dr.FilterMode.Nearest, dr.WrapMode.Repeat)
+    tex_no_accel = TexType([N], 1, False, dr.FilterMode.Nearest, dr.WrapMode.Repeat)
+
     value = t(0, 0.5, 1)
     tex.set_value(value)
+    tex_no_accel.set_value(value)
 
     pos = dr.linspace(t, 0, 1, 80)
     out_accel = tex.eval(pos)
-    out_drjit = tex.eval_nonaccel(pos)
+    out_drjit = tex_no_accel.eval(pos)
     assert dr.allclose(out_accel, out_drjit)
 
 @pytest.mark.parametrize("texture_type", ['Texture1f', 'Texture1f16'])
@@ -517,14 +521,16 @@ def test18_fetch_1d(t, texture_type):
     N = 2
     for ch in range(1,9):
         tex = TexType([N], ch, True)
+        tex_no_accel = TexType([N], ch, False)
         rng = PCG32(N * ch)
 
         StorageType = dr.array_t(tex.value())
         tex_data = StorageType(rng.next_float32())
         tex.set_value(tex_data)
+        tex_no_accel.set_value(tex_data)
 
         pos = Array1f(0.5)
-        out_drjit = tex.eval_fetch_drjit(pos)
+        out_drjit = tex_no_accel.eval_fetch(pos)
         out_accel = tex.eval_fetch(pos)
         for k in range(0, ch):
             assert dr.allclose(tex_data[k], out_drjit[0][k])
@@ -543,14 +549,16 @@ def test19_fetch_2d(t, texture_type):
     N, M = 2, 2
     for ch in range(1, 9):
         tex = TexType([N, M], ch, True)
+        tex_no_accel = TexType([N, M], ch, False)
         rng = PCG32(N * M * ch)
 
         StorageType = dr.array_t(tex.value())
         tex_data = StorageType(rng.next_float32())
         tex.set_value(tex_data)
+        tex_no_accel.set_value(tex_data)
 
         pos = Array2f(0.5, 0.5)
-        out_drjit = tex.eval_fetch_drjit(pos)
+        out_drjit = tex_no_accel.eval_fetch(pos)
         out_accel = tex.eval_fetch(pos)
         for k in range(0, ch):
             assert dr.allclose(tex_data[k], out_drjit[0][k])
@@ -573,14 +581,16 @@ def test20_fetch_3d(t, texture_type):
     N, M, L = 2, 2, 2
     for ch in range(1, 9):
         tex = TexType([N, M, L], ch, True)
+        tex_no_accel = TexType([N, M, L], ch, False)
         rng = PCG32(N * M * L * ch)
 
         StorageType = dr.array_t(tex.value())
         tex_data = StorageType(rng.next_float32())
         tex.set_value(tex_data)
+        tex_no_accel.set_value(tex_data)
 
         pos = Array3f(0.3, 0.3, 0.3)
-        out_drjit = tex.eval_fetch_drjit(pos)
+        out_drjit = tex_no_accel.eval_fetch(pos)
         out_accel = tex.eval_fetch(pos)
         for k in range(0, ch):
             assert dr.allclose(tex_data[k], out_drjit[0][k])
@@ -614,13 +624,10 @@ def test21_fetch_migrate(t, texture_type, migrate):
     tex.set_value(tex_data, migrate)
 
     pos = Array1f(0.5)
-    out = tex.eval_fetch_drjit(pos)
-    if migrate and dr.backend_v(t) == dr.JitBackend.CUDA:
-        assert dr.allclose(out[0][0], 0)
-        assert dr.allclose(out[1][0], 0)
-    else:
-        assert dr.allclose(out[0][0], 1.0)
-        assert dr.allclose(out[1][0], 2.0)
+    out = tex.eval_fetch(pos)
+
+    assert dr.allclose(out[0][0], 1.0)
+    assert dr.allclose(out[1][0], 2.0)
 
 @pytest.mark.parametrize("texture_type", ['Texture2f', 'Texture2f16'])
 @pytest.test_arrays("is_diff, float32, shape=(*)")
@@ -631,14 +638,16 @@ def test22_fetch_grad(t, texture_type):
 
     N, M = 2, 2
     tex = TexType([N, M], 1, True)
+    tex_no_accel = TexType([N, M], 1, False)
 
     StorageType = dr.array_t(tex.value())
     tex_data = StorageType(t(1, 2, 3, 4))
     dr.enable_grad(tex_data)
     tex.set_value(tex_data)
+    tex_no_accel.set_value(tex_data)
 
     pos = Array2f(0.5, 0.5)
-    out = tex.eval_fetch_drjit(pos)
+    out = tex_no_accel.eval_fetch(pos)
     assert dr.allclose(1, out[0][0])
     assert dr.allclose(2, out[1][0])
     assert dr.allclose(3, out[2][0])
@@ -671,7 +680,10 @@ def test23_set_tensor(t, texture_type):
 
     tex = TexType([2, 2], 1, True)
     tex_data = t(1, 2, 3, 4)
-    tex.set_value(tex_data);
+    tex.set_value(tex_data)
+
+    tex_no_accel = TexType([2, 2], 1, False)
+    tex_no_accel.set_value(tex_data)
 
     TensorType = type(tex.tensor())
 
@@ -681,13 +693,19 @@ def test23_set_tensor(t, texture_type):
     assert new_tensor.shape == (2,3,2)
 
     tex.set_tensor(new_tensor)
+    tex_no_accel.set_tensor(new_tensor)
+
+    dr.eval(tex)
+    dr.eval(tex_no_accel)
+
+    assert tex.tensor().shape == (2,3,2)
 
     dr.eval(tex)
 
     assert tex.tensor().shape == (2,3,2)
 
     pos = Array2f(0, 0)
-    result_drjit = tex.eval_nonaccel(pos)
+    result_drjit = tex_no_accel.eval(pos)
     dr.eval(result_drjit)
     result_accel = tex.eval(pos)
     dr.eval(result_accel)
@@ -695,7 +713,7 @@ def test23_set_tensor(t, texture_type):
     assert dr.allclose(result_drjit, Array2f(6.5, 6))
 
     pos = Array2f(1, 1)
-    result_drjit = tex.eval_nonaccel(pos)
+    result_drjit = tex_no_accel.eval(pos)
     dr.eval(result_drjit)
     result_accel = tex.eval(pos)
     dr.eval(result_accel)
@@ -703,7 +721,7 @@ def test23_set_tensor(t, texture_type):
     assert dr.allclose(result_drjit, Array2f(1.5, 1))
 
     pos = Array2f(0, 1)
-    result_drjit = tex.eval_nonaccel(pos)
+    result_drjit = tex_no_accel.eval(pos)
     dr.eval(result_drjit)
     result_accel = tex.eval(pos)
     dr.eval(result_accel)
@@ -711,7 +729,7 @@ def test23_set_tensor(t, texture_type):
     assert dr.allclose(result_drjit, Array2f(3.5, 3))
 
     pos = Array2f(1, 0)
-    result_drjit = tex.eval_nonaccel(pos)
+    result_drjit = tex_no_accel.eval(pos)
     dr.eval(result_drjit)
     result_accel = tex.eval(pos)
     dr.eval(result_accel)
