@@ -759,7 +759,7 @@ def test034_scatter_fwd_permute(t):
     assert dr.allclose(grad, ref_grad)
 
 
-@pytest.test_arrays('is_diff,float,-float16,shape=(*)')
+@pytest.test_arrays('is_diff,float,shape=(*)')
 def test035_scatter_reduce_bwd(t):
     m = sys.modules[t.__module__]
     for i in range(3):

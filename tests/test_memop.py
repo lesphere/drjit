@@ -1,7 +1,7 @@
 import drjit as dr
 import pytest
 
-@pytest.test_arrays('-bool,shape=(*),-float16')
+@pytest.test_arrays('-bool,shape=(*)')
 def test01_gather_simple(t):
     assert dr.all(dr.gather(
         dtype=t,
@@ -12,7 +12,7 @@ def test01_gather_simple(t):
     assert dr.all(dr.gather(
         dtype=t,
         source=dr.arange(t, 10),
-        index=dr.uint_array_t(t)(0, 5, 3),
+        index=dr.uint32_array_t(t)(0, 5, 3),
         active=dr.mask_t(t)(True, False, True)
     ) == t(0, 0, 3))
 
@@ -20,7 +20,7 @@ def test01_gather_simple(t):
         dr.gather(
             dtype=str,
             source=dr.arange(t, 10),
-            index=dr.uint_array_t(t)(0, 5, 3),
+            index=dr.uint32_array_t(t)(0, 5, 3),
             active=dr.mask_t(t)(True, False, True)
         )
 
@@ -128,11 +128,11 @@ def test06_scatter_nested_2(t):
     assert dr.all(buf == [1, 3, 5, 8, 9, 10, 2, 4, 6])
 
 
-@pytest.test_arrays('-bool,shape=(*),-float16')
+@pytest.test_arrays('-bool,shape=(*)')
 def test07_gather_pytree(t):
     x = t([1, 2, 3, 4])
     y = t([5, 6, 7, 8])
-    i = dr.uint_array_t(t)([1, 0])
+    i = dr.uint32_array_t(t)([1, 0])
     r = dr.gather(tuple, (x, y), i)
     assert type(r) is tuple and len(r) == 2
     assert dr.all(r[0] == t([2, 1]))
@@ -149,11 +149,11 @@ def test07_gather_pytree(t):
     assert dr.all(r.a == t([2, 1]))
 
 
-@pytest.test_arrays('-bool,shape=(*),-float16')
+@pytest.test_arrays('-bool,shape=(*)')
 def test08_scatter_pytree(t):
     x = dr.zeros(t, 4)
     y = dr.zeros(t, 4)
-    i = dr.uint_array_t(t)([1, 0])
+    i = dr.uint32_array_t(t)([1, 0])
     trg = (x, y)
     dr.scatter(
         trg,
