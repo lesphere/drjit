@@ -243,7 +243,7 @@ public:
         {
             size_t current_shape[Dimension + 1];
 
-            if (HasCudaTexture && is_inplace_update) {
+            if (HasCudaTexture && is_inplace_update && m_use_accel) {
                 jit_cuda_tex_get_shape(Dimension, m_handle, current_shape);
             } else {
                 for (size_t i = 0; i < Dimension + 1; ++i)
