@@ -52,9 +52,9 @@ Hardware acceleration
 ---------------------
 
 Dr.Jit textures targeting the CUDA backend can benefit from hardware-accelerated 
-texture lookups. Internally, textures initialized with `use_accel=True` will
-create an associated *CUDA texture object* that leverages GPU hardware intrinsics 
-to perform sampling
+texture lookups. Internally, textures initialized with ``use_accel=True`` 
+(which is enabled by default) will create an associated *CUDA texture object* 
+that leverages GPU hardware intrinsics to perform sampling
 
 .. code-block:: python
 
@@ -66,6 +66,13 @@ to perform sampling
     supported. Double-precision textures can be initialized but won't benefit
     from hardware-acceleration.
 
+.. warning::
+
+    Hardware-accelerated lookups use a 9-bit fixed-point format with 8-bits of
+    fractional value for storing the *weights* used for linear interpolation. See
+    the `CUDA programming guide <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#linear-filtering>`_
+    for more details.
+
 Migration
 ^^^^^^^^^
 When CUDA texture objects aren't utilised, the underlying storage type 
@@ -73,7 +80,7 @@ of a Dr.Jit texture is exclusively a tensor,
 
 .. code-block:: python
 
-   tex = dr.llvm.Texture2f(tensor_data, use_accel=True)
+   tex = dr.cuda.Texture2f(tensor_data, use_accel=False)
 
    tensor_data = tex.tensor()
    array_data = tex.value()
@@ -86,7 +93,7 @@ disabling *migration*
 
    tex = dr.cuda.Texture2f(tensor_data, use_accel=True, migrate=False)
 
-While the default behavior of texture intialization is to set `migrate=True` to
+While the default behavior of texture intialization is to set ``migrate=True`` to
 minimize redundant storage, it's important to note that attempting to fetch
 either the :py:func:`tensor()` or :py:func:`value()` data requires converting a
 CUDA texture object into a tensor and hence a side effect of these function
