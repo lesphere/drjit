@@ -785,7 +785,7 @@ nanobind::object bind_array(ArrayBinding &b, nanobind::handle scope = {},
             if constexpr (T::IsIntegral)
                 bind_int_arithmetic<T>(b);
 
-            if constexpr (T::IsFloat && !drjit::is_half_array_v<T>)
+            if constexpr (T::IsFloat)
                 bind_float_arithmetic<T>(b);
 
             if constexpr (T::IsMask)
@@ -812,7 +812,7 @@ nanobind::object bind_array(ArrayBinding &b, nanobind::handle scope = {},
     if constexpr (!T::IsIntegral)
         disable_int_arithmetic(b);
 
-    if constexpr (!T::IsFloat || drjit::is_half_array_v<T>)
+    if constexpr (!T::IsFloat)
         disable_float_arithmetic(b);
 
     if constexpr (!T::IsMask)
