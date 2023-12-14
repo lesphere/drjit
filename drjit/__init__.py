@@ -626,5 +626,30 @@ def isolate_grad(when=True):
 
     return detail.ADContextManager(detail.ADScope.Isolate, [])
 
+# -------------------------------------------------------------------
+#    Interoperability with other frameworks (TensorFlow, PyTorch, Jax)
+# -------------------------------------------------------------------
+
+def torch(a):
+    from torch.utils.dlpack import from_dlpack
+    return from_dlpack(a)
+
+def jax(a):
+    from jax.dlpack import from_dlpack
+    from jax import devices
+    if a.IsLLVM:
+        try:
+            # Not all Jax versions accept the 'backend' parameter
+            return from_dlpack(a, backend=devices(backend="cpu")[0])
+        except:
+            pass
+    return from_dlpack(a)
+
+def tf(a):
+    from tensorflow.experimental.dlpack import from_dlpack
+    from tensorflow import constant
+    constant(0) # Dummy op to ensure that the Tensorflow context is initialized
+    return from_dlpack(a)
+
 syntax = ast.syntax
 hint = ast.hint

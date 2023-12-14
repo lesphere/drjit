@@ -33,7 +33,7 @@ nb::dlpack::dtype dlpack_dtype(VarType vt) {
 
 using JitVar = drjit::JitArray<JitBackend::None, void>;
 
-static nb::ndarray<> dlpack(nb::handle_t<ArrayBase> h, bool force_cpu) {
+static nb::ndarray<> dlpack(nb::handle_t<ArrayBase> h, bool force_cpu, int32_t stream_idx = 0) {
     const ArraySupplement &s = supp(h.type());
     bool is_dynamic = false;
 
@@ -76,6 +76,9 @@ static nb::ndarray<> dlpack(nb::handle_t<ArrayBase> h, bool force_cpu) {
             if (backend == JitBackend::CUDA && !force_cpu) {
                 device_type = nb::device::cuda::value;
                 device_id = jit_var_device(index);
+                // Not the default CUDA stream so we must
+                if (stream_idx != 0)
+                    jit_sync_thread();
             } else {
                 jit_sync_thread();
             }
@@ -126,13 +129,51 @@ static nb::ndarray<> dlpack(nb::handle_t<ArrayBase> h, bool force_cpu) {
     }
 }
 
+static nb::tuple dlpack_device(nb::handle_t<ArrayBase> h) {
+    const ArraySupplement &s = supp(h.type());
+    bool is_dynamic = false;
+
+    if (s.is_tensor) {
+        is_dynamic = true;
+    } else {
+        for (int i = 0; i < s.ndim; ++i)
+            is_dynamic |= s.shape[i] == DRJIT_DYNAMIC;
+    }
+
+    dr_vector<size_t> shape;
+    dr_vector<int64_t> strides;
+
+    int32_t device_id = 0, device_type = nb::device::cpu::value;
+
+    if (is_dynamic) {
+        nb::object flat = ravel(h, 'C', &shape, &strides);
+        const ArraySupplement &s2 = supp(flat.type());
+
+        if (s2.index) {
+            uint32_t index = s2.index(inst_ptr(flat));
+            JitBackend backend = (JitBackend) s2.backend;
+
+            if (backend == JitBackend::CUDA) {
+                device_type = nb::device::cuda::value;
+                device_id = jit_var_device(index);
+            }
+        }
+    }
+
+    return nb::make_tuple(device_type, device_id);
+}
+
 void export_dlpack(nb::module_ &) {
     nb::class_<ArrayBase> ab = nb::borrow<nb::class_<ArrayBase>>(array_base);
 
     ab.def("__dlpack__",
+           [](nb::handle_t<ArrayBase> h, int32_t stream) {
+               return dlpack(h, false, stream);
+           }, "stream"_a = 0, doc_dlpack)
+      .def("__dlpack_device__",
            [](nb::handle_t<ArrayBase> h) {
-               return dlpack(h, false);
-           }, doc_dlpack)
+               return dlpack_device(h);
+           })
       .def("__array__",
            [](nb::handle_t<ArrayBase> h) {
                return nb::ndarray<nb::numpy>(dlpack(h, true).handle());
