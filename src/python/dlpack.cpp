@@ -76,7 +76,7 @@ static nb::ndarray<> dlpack(nb::handle_t<ArrayBase> h, bool force_cpu, int32_t s
             if (backend == JitBackend::CUDA && !force_cpu) {
                 device_type = nb::device::cuda::value;
                 device_id = jit_var_device(index);
-                // Not the default CUDA stream so we must
+                // Not the default CUDA stream so we must sync
                 if (stream_idx != 0)
                     jit_sync_thread();
             } else {
@@ -173,9 +173,24 @@ void export_dlpack(nb::module_ &) {
       .def("__dlpack_device__",
            [](nb::handle_t<ArrayBase> h) {
                return dlpack_device(h);
-           })
+           }, doc_dlpack_device)
       .def("__array__",
            [](nb::handle_t<ArrayBase> h) {
                return nb::ndarray<nb::numpy>(dlpack(h, true).handle());
-           }, doc_array);
+           }, doc_array)
+      .def("torch",
+           [](nb::handle_t<ArrayBase> h) {
+                nb::module_ torch = nb::module_::import_("torch.utils.dlpack");
+                return torch.attr("from_dlpack")(h);
+           })
+      .def("jax",
+           [](nb::handle_t<ArrayBase> h) {
+                nb::module_ jax = nb::module_::import_("jax.dlpack");
+                return jax.attr("from_dlpack")(h);
+           })
+      .def("tf",
+           [](nb::handle_t<ArrayBase> h) {
+                nb::module_ tf = nb::module_::import_("tensorflow.experimental.dlpack");
+                return tf.attr("from_dlpack")(h);
+           });
 }
