@@ -1701,6 +1701,11 @@ auto grad(const T &value) {
                 return Result(grad<Underlying, FailIfMissing>(value.array()),
                               value.ndim(), value.shape());
             } else {
+//#define DRJIT_PRINT_DEBUG
+#if defined(DRJIT_PRINT_DEBUG)
+                fprintf(stderr,
+                        "array_router.h grad(): before entering grad_()\n");
+#endif
                 return Result(value.derived().grad_(FailIfMissing));
             }
         }

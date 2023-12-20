@@ -18,14 +18,29 @@
 NAMESPACE_BEGIN(drjit)
 NAMESPACE_BEGIN(detail)
 
+#undef DRJIT_PRINT_DEBUG
+
 template <typename T>
 void collect_indices(dr_index_vector &indices, const T &value) {
+#if defined(DRJIT_PRINT_DEBUG)
+    fprintf(stderr, "collect_indices(): type = %s\n", typeid(T).name());
+#endif
     if constexpr (array_depth_v<T> > 1) {
+#if defined(DRJIT_PRINT_DEBUG)
+        fprintf(stderr, "array_depth_v<%s> = %d\n", typeid(T).name(),
+                array_depth_v<T>);
+#endif
         for (size_t i = 0; i < value.derived().size(); ++i)
             collect_indices(indices, value.derived().entry(i));
     } else if constexpr (is_diff_v<T>) {
+#if defined(DRJIT_PRINT_DEBUG)
+        fprintf(stderr, "is_diff_v<%s> = %d\n", typeid(T).name(), is_diff_v<T>);
+#endif
         collect_indices(indices, value.detach_());
     } else if constexpr (is_jit_v<T>) {
+#if defined(DRJIT_PRINT_DEBUG)
+        fprintf(stderr, "is_jit_v<%s> = %d\n", typeid(T).name(), is_jit_v<T>);
+#endif
         uint32_t index = value.index();
         if (!index)
             drjit_raise("drjit::detail::collect_indices(): encountered an "
@@ -33,6 +48,10 @@ void collect_indices(dr_index_vector &indices, const T &value) {
                         "virtual function call!");
         indices.push_back(index);
     } else if constexpr (is_drjit_struct_v<T>) {
+#if defined(DRJIT_PRINT_DEBUG)
+        fprintf(stderr, "is_drjit_struct_v<%s> = %d\n", typeid(T).name(),
+                is_drjit_struct_v<T>);
+#endif
         struct_support_t<T>::apply_1(
             value, [&](const auto &x) { collect_indices(indices, x); });
     }
@@ -130,6 +149,9 @@ Result vcall_jit_record_impl(const char *name, uint32_t n_inst,
         } else {
             // The following assignment converts scalar return values
             Result tmp = func(base, set_mask_true<Is, N>(args)...);
+#if defined(DRJIT_PRINT_DEBUG)
+            fprintf(stderr, "func = %s\n", func);
+#endif
             collect_indices(indices_out_all, tmp);
         }
 

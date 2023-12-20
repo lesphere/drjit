@@ -140,6 +140,13 @@ template <typename Result, typename Func, typename Self, typename... Args>
 Result vcall_autodiff(const char *name, const Func &func, const Self &self,
                       const Args &... args);
 
+// Check types that are instantiations of a template
+template <class, template <class...> class>
+struct is_instance : public std::false_type {};
+
+template <class... Ts, template <class...> class U>
+struct is_instance<U<Ts...>, U> : public std::true_type {};
+
 template <typename Class, typename Func, typename Self, typename... Args>
 auto vcall(const char *name, const Func &func, const Self &self,
            const Args &... args) {
@@ -147,6 +154,26 @@ auto vcall(const char *name, const Func &func, const Self &self,
     using Result = typename vectorize_type<Self, Output>::type;
 
     DRJIT_MARK_USED(name);
+
+//#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+    if (is_instance<Class, mitsuba::BSDF> {} && !strcmp(name, "eval")) {
+        fprintf(stderr, "Class is BSDF = %d\n",
+                (int) is_instance<Class, mitsuba::BSDF>{});
+        fprintf(stderr, "Class = %s\n", typeid(Class).name());
+        fprintf(stderr, "Func = %s\n", typeid(Func).name());
+        fprintf(stderr, "Self = %s\n", typeid(Self).name());
+        fprintf(stderr, "Output = %s\n", typeid(Output).name());
+        fprintf(stderr, "Result = %s\n", typeid(Result).name());
+        fprintf(stderr, "is_jit_v<Self> = %d\n", is_jit_v<Self>);
+        fprintf(stderr,
+                "(jit_flags() & (uint32_t) JitFlag::VCallRecord) == %d\n",
+                jit_flags() & (uint32_t) JitFlag::VCallRecord);
+        fprintf(stderr, "is_diff_v<Self> = %d\n", is_diff_v<Self>);
+    }
+#endif
+#undef DEBUG_PRINT
+
     if constexpr (is_jit_v<Self>) {
         if ((jit_flags() & (uint32_t) JitFlag::VCallRecord) == 0) {
             return detail::vcall_jit_reduce<Result>(func, self, copy_diff(args)...);

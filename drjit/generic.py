@@ -1270,18 +1270,18 @@ def detach_(a):
         return result
 
 
-def grad_(a):
+def grad_(a, allow_diff_size=False):
     if not a.IsDiff:
         return None
 
     t = _dr.detached_t(type(a))
 
     if a.IsTensor:
-        return t(a.array.grad_(), a.shape)
+        return t(a.array.grad_(allow_diff_size), a.shape)
     else:
         result = t.empty_(len(a) if a.Size == Dynamic else 0)
         for i in range(len(a)):
-            result[i] = a[i].grad_()
+            result[i] = a[i].grad_(allow_diff_size)
 
     return result
 

@@ -21,8 +21,12 @@
      extern template DRJIT_AD_EXPORT struct DiffArray<T>;
 #endif
 
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
+
 #include <drjit/array.h>
 #include <drjit-core/jit.h>
+
 
 NAMESPACE_BEGIN(drjit)
 
@@ -47,7 +51,7 @@ uint32_t ad_new(const char *label, size_t size, uint32_t ops = 0,
                 uint32_t *indices = nullptr, Value *weights = nullptr);
 
 /// Query the gradient associated with a variable
-template <typename Value> Value ad_grad(uint32_t index, bool fail_if_missing);
+template <typename Value> Value ad_grad(uint32_t index, bool fail_if_missing, bool allow_diff_size = false);
 
 /// Overwrite the gradient associated with a variable
 template <typename Value>
@@ -61,7 +65,9 @@ void ad_accum_grad(uint32_t index, const Value &v, bool fail_if_missing);
 template <typename Value> void ad_enqueue(ADMode mode, uint32_t index);
 
 /// Propagate derivatives through the enqueued set of edges
-template <typename Value> void ad_traverse(ADMode mode, uint32_t flags);
+template <typename Value>
+void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array = false, py::object opt = py::none(),
+                 py::object guiding_t = py::none());
 
 /// Number of observed implicit dependencies
 template <typename Value> size_t ad_implicit();
@@ -116,7 +122,7 @@ template <typename Value> bool ad_enabled() noexcept(true);
 /// Custom graph edge for implementing custom differentiable operations
 struct DRJIT_AD_EXPORT DiffCallback {
     virtual void forward() = 0;
-    virtual void backward() = 0;
+    virtual void backward(py::object = py::none(), py::object = py::none()) = 0;
     virtual ~DiffCallback();
 };
 
@@ -1616,10 +1622,19 @@ struct DiffArray : ArrayBase<value_t<Type_>, is_mask_v<Type_>, DiffArray<Type_>>
             detail::ad_enqueue<Type>(mode, m_index);
     }
 
-    static void traverse_(ADMode mode, uint32_t flags) {
+    //static void traverse_(ADMode mode, uint32_t flags) {
+    //    DRJIT_MARK_USED(flags);
+    //    if constexpr (IsEnabled) {
+    //        detail::ad_traverse<Type>(mode, flags);
+    //    }
+    //}
+    static void traverse_(ADMode mode, uint32_t flags,
+                          bool maintain_grad_array = false,
+                          py::object opt       = py::none(),
+                          py::object guiding_t = py::none()) {
         DRJIT_MARK_USED(flags);
-        if constexpr (IsEnabled)
-            detail::ad_traverse<Type>(mode, flags);
+        if constexpr (IsEnabled) 
+            detail::ad_traverse<Type>(mode, flags, maintain_grad_array, opt, guiding_t);
     }
 
     void set_label_(const char *label) {
@@ -1657,10 +1672,16 @@ struct DiffArray : ArrayBase<value_t<Type_>, is_mask_v<Type_>, DiffArray<Type_>>
         return m_value;
     }
 
-    const Type grad_(bool fail_if_missing = false) const {
+    const Type grad_(bool fail_if_missing = false, bool allow_diff_size = false) const {
         DRJIT_MARK_USED(fail_if_missing);
+//#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+        fprintf(stderr, "In autodiff.h grad_(): allow_diff_size = %d\n",
+                (int) allow_diff_size);
+#endif
+#undef DEBUG_PRINT
         if constexpr (IsEnabled)
-            return detail::ad_grad<Type>(m_index, fail_if_missing);
+            return detail::ad_grad<Type>(m_index, fail_if_missing, allow_diff_size);
         else
             return zeros<Type>();
     }
@@ -1805,7 +1826,7 @@ protected:
     extern template DRJIT_AD_EXPORT uint32_t ad_new<T>(const char *, size_t,   \
                                                        uint32_t, uint32_t *,   \
                                                        T *);                   \
-    extern template DRJIT_AD_EXPORT T ad_grad<T>(uint32_t, bool);              \
+    extern template DRJIT_AD_EXPORT T ad_grad<T>(uint32_t, bool, bool);        \
     extern template DRJIT_AD_EXPORT void ad_set_grad<T>(uint32_t, const T &,   \
                                                         bool);                 \
     extern template DRJIT_AD_EXPORT void ad_accum_grad<T>(uint32_t, const T &, \
@@ -1815,7 +1836,8 @@ protected:
     extern template DRJIT_AD_EXPORT const char *ad_label<T>(uint32_t);         \
     extern template DRJIT_AD_EXPORT const char *ad_graphviz<T>();              \
     extern template DRJIT_AD_EXPORT void ad_enqueue<T>(ADMode, uint32_t);      \
-    extern template DRJIT_AD_EXPORT void ad_traverse<T>(ADMode, uint32_t);     \
+    extern template DRJIT_AD_EXPORT void ad_traverse<T>(ADMode, uint32_t,      \
+        bool, py::object, py::object);                                         \
     extern template DRJIT_AD_EXPORT uint32_t ad_new_select<T, Mask>(           \
         const char *, size_t, const Mask &, uint32_t, uint32_t);               \
     extern template DRJIT_AD_EXPORT uint32_t ad_new_gather<T, Mask, Index>(    \

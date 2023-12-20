@@ -286,7 +286,7 @@ struct Variable {
      * optimizations.
      */
     template <typename T = Value>
-    void mul_accum(const T &v1, const T &v2_, uint32_t src_size) {
+    void mul_accum(const T &v1, const T &v2_, uint32_t src_size, bool resize = false) {
         /* The goal of the following logic is to always ensure that
            v1 == 0 implies v1 * v2 == 0, even if multiplication by
            v2 would produce a NaN (e.g. if v2 is infinite or NaN). */
@@ -322,15 +322,39 @@ struct Variable {
                    broadcast to all elements. */
 
                 T v3 = v1 * v2;
-                if (v3.size() == 1) {
-                    v3 *= scalar_t<Value>(src_size);
-                } else {
-                    assert(v3.size() == src_size);
-                    v3 = sum(v3);
+                if (!resize) {
+                    if (v3.size() == 1) {
+                        v3 *= scalar_t<Value>(src_size);
+                    } else {
+                        assert(v3.size() == src_size);
+                        v3 = sum(v3);
+                    }
                 }
 
-                if (grad_valid)
+//#define DEBNG_PRINT
+#if defined(DEBUG_PRINT)
+                // fprintf(stderr, "state.variables index: size = %u\n",
+                // state.variables.size()); for (auto it : state.variables) {
+                //     fprintf(stderr, "%u\n", it.first);
+                // }
+                // fprintf(stderr, "In mul_accum(): grad_resize(src_size =
+                // %u)\n", src_size); grad.resize(src_size); fprintf(stderr,
+                // "grad_resize() success\n");
+                fprintf(stderr, "In autodiff.cpp mul_accum(): grad_valid = %d, resize = %d\n",
+                        (int) grad_valid, (int) resize);
+                fprintf(stderr,
+                        "grad.index = %u, v3.index = %u, grad.size = %zu, src_size = %u, v1.size = %zu, v2.size = %zu, v3.size = %zu\n",
+                        grad.index(), v3.index(), grad.size(), src_size, v1.size(), v2.size(), v3.size());
+#endif
+#undef DEBUG_PRINT
+
+                if (grad_valid) {
+                    /* resize grad to src_size to avoid sum and maintain per-ray
+                       grad */
+                    if (resize)
+                        grad.resize(src_size);
                     grad += v3;
+                }
                 else
                     grad = std::move(v3);
             } else {
@@ -494,7 +518,9 @@ struct Scope {
 struct Special {
     virtual void backward(Variable * /* source */,
                           const Variable * /* target */,
-                          uint32_t /* flags */) const {
+                          uint32_t /* flags */,
+                          py::object = py::none() /* optimizer */,
+                          py::object = py::none() /* guiding samples */) const {
         ad_fail("Special::backward(): not implemented!");
     }
 
@@ -1032,7 +1058,8 @@ uint32_t ad_new(const char *label, size_t size, uint32_t op_count,
 template <typename Value> struct MaskEdge : Special {
     MaskEdge(const Mask &mask, bool negate) : mask(mask), negate(negate) { }
 
-    void backward(Variable *source, const Variable *target, uint32_t) const override {
+    void backward(Variable *source, const Variable *target, uint32_t,
+                  py::object, py::object) const override {
         source->accum(!negate ? detail::and_(target->grad, mask)
                               : detail::andnot_(target->grad, mask),
                       target->size);
@@ -1049,7 +1076,8 @@ template <typename Value> struct MaskEdge : Special {
 };
 
 template <typename Value> struct SpecialConnection : Special {
-    void backward(Variable *, const Variable *target, uint32_t) const override {
+    void backward(Variable *, const Variable *target, uint32_t, py::object,
+                  py::object) const override {
         if (target->size)
             const_cast<Variable *>(target)->ref_count_grad++;
     }
@@ -1112,23 +1140,27 @@ template <typename Value> struct SpecialCallback : Special {
     SpecialCallback(DiffCallback *callback, Scope &&scope)
         : callback(callback), scope(std::move(scope)) { }
 
-    void backward(Variable *, const Variable *target, uint32_t flags) const override {
+    void backward(Variable *, const Variable *target, uint32_t flags,
+                  py::object opt, py::object guiding_t) const override {
         ad_trace("ad_traverse(): invoking user callback ..");
         uint32_t edge = target->next_fwd;
-
+    
         /* leave critical section */ {
             unlock_guard<std::mutex> guard(state.mutex);
             PushScope push(scope);
-            callback->backward();
+            callback->backward(opt, guiding_t);
         }
-        if (edge && state.edges[edge].next_fwd) { // fan-in > 1, update ref counts
+        if (edge && state.edges[edge].next_fwd) { // fan-in > 1, update ref
+                                                  // counts
             do {
                 const Edge &e = state.edges[edge];
-                Variable *v = state[e.target];
-
+                Variable *v   = state[e.target];
+    
                 if (v->ref_count_grad > 0 && --v->ref_count_grad == 0) {
-                    if (((flags & (uint32_t) ADFlag::ClearInterior) && v->next_fwd != 0) ||
-                        ((flags & (uint32_t) ADFlag::ClearInput) && v->next_fwd == 0))
+                    if (((flags & (uint32_t) ADFlag::ClearInterior) &&
+                         v->next_fwd != 0) ||
+                        ((flags & (uint32_t) ADFlag::ClearInput) &&
+                         v->next_fwd == 0))
                         v->grad = Value();
                 }
                 edge = e.next_fwd;
@@ -1306,7 +1338,8 @@ template <typename Value> struct GatherEdge : Special {
         }
     }
 
-    void backward(Variable *source, const Variable *target, uint32_t) const override {
+    void backward(Variable *source, const Variable *target, uint32_t,
+                  py::object, py::object) const override {
         Value &source_grad = (Value &) source->grad;
         uint32_t size = source->size;
 
@@ -1424,7 +1457,8 @@ template <typename Value> struct ScatterEdge : Special {
         }
     }
 
-    void backward(Variable *source, const Variable *target, uint32_t) const override {
+    void backward(Variable *source, const Variable *target, uint32_t,
+                  py::object, py::object) const override {
         MaskGuard guard(mask_stack);
         source->accum(gather<Value>(target->grad, offset, mask),
                       (uint32_t) width(offset));
@@ -1552,7 +1586,9 @@ uint32_t ad_new_scatter(const char *label, size_t size, ReduceOp op,
 // Interface for querying and modifying variables
 // ==========================================================================
 
-template <typename T> T ad_grad(uint32_t index, bool fail_if_missing) {
+
+template <typename T>
+T ad_grad(uint32_t index, bool fail_if_missing, bool allow_diff_size) {
     auto const &scopes = local_state.scopes;
     if (unlikely(!scopes.empty()))
         scopes.back().maybe_disable(index);
@@ -1568,12 +1604,22 @@ template <typename T> T ad_grad(uint32_t index, bool fail_if_missing) {
     }
 
     const Variable &v = it->second;
-    T result = v.grad;
+    T result          = v.grad;
+
+ //#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+    fprintf(stderr, "ad_grad(): index = %d\n", index);
+    fprintf(stderr, "is_jit_v<%s> = %d\n", typeid(T).name(), is_jit_v<T>);
+    fprintf(stderr, "is_valid(result) = %d\n", is_valid(result));
+    fprintf(stderr, "In autodiff.cpp ad_grad(): allow_diff_size = %d\n",
+            (int) allow_diff_size);
+#endif
+#undef DEBUG_PRINT
 
     if constexpr (is_jit_v<T>) {
         if (!is_valid(result))
             result = zeros<T>(v.size);
-        else if (result.size() != v.size)
+        else if (!allow_diff_size && result.size() != v.size)
             result.resize(v.size);
     }
 
@@ -1783,7 +1829,8 @@ template <typename T> void ad_enqueue(ADMode mode, uint32_t index) {
 // ==========================================================================
 
 template <typename Value>
-void ad_traverse(ADMode mode, uint32_t flags) {
+void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array,
+                 py::object opt, py::object guiding_t) {
     LocalState &ls = local_state;
 
     std::vector<EdgeRef> &todo_tls = ls.todo, todo;
@@ -1812,8 +1859,8 @@ void ad_traverse(ADMode mode, uint32_t flags) {
                    std::tie(e2.source, e2.target, e2.id);
     });
 
-    ad_log(Debug, "ad_traverse(): processing %zu edges in %s mode ..", todo.size(),
-           mode == ADMode::Forward ? "forward" : "backward");
+    ad_log(Debug, "ad_traverse(): processing %zu edges in %s mode ..",
+           todo.size(), mode == ADMode::Forward ? "forward" : "backward");
 
     /// Any edges with an ID less than this value will be postponed
     uint32_t postpone_before = 0;
@@ -1825,8 +1872,7 @@ void ad_traverse(ADMode mode, uint32_t flags) {
         if (!prev_i || prev_i == cur_i)
             return;
 
-        Variable *cur  = cur_i ? state[cur_i] : nullptr,
-                 *prev = state[prev_i];
+        Variable *cur = cur_i ? state[cur_i] : nullptr, *prev = state[prev_i];
 
         /* Wave-front style evaluation of dr.Loop with differentiable
            variables produces nodes with label 'dr_loop' at the boundary of
@@ -1868,12 +1914,14 @@ void ad_traverse(ADMode mode, uint32_t flags) {
 
         // Aggressively clear gradients at intermediate nodes
         if (clear_grad) {
-            ad_trace("ad_traverse(): clearing gradient at intermediate variable a%u", prev_i);
+            ad_trace(
+                "ad_traverse(): clearing gradient at intermediate variable a%u",
+                prev_i);
             prev->grad = Value();
         }
     };
 
-    uint32_t v0i_prev = 0;
+    uint32_t v0i_prev     = 0;
     uint32_t last_edge_id = 0;
 
     // This is the main AD traversal loop
@@ -1891,27 +1939,29 @@ void ad_traverse(ADMode mode, uint32_t flags) {
 
         if (unlikely(er.id == last_edge_id))
             ad_fail("ad_traverse(): internal error: edge a%u -> a%u was "
-                    "enqueued twice!", v0i, v1i);
+                    "enqueued twice!",
+                    v0i, v1i);
         last_edge_id = er.id;
 
         if (unlikely(!edge.visited))
             ad_fail("ad_traverse(): internal error: edge a%u -> a%u is not "
-                    "marked as visited! (1)", er.source, er.target);
+                    "marked as visited! (1)",
+                    er.source, er.target);
 
         if (unlikely(edge.source != er.source || edge.target != er.target))
             ad_fail("ad_traverse(): internal error: edge a%u -> a%u was "
                     "garbage collected between enqueuing and traversal steps!",
                     v0i, v1i);
 
-        Variable *v0 = state[v0i],
-                 *v1 = state[v1i];
+        Variable *v0 = state[v0i], *v1 = state[v1i];
 
         uint32_t grad_size = (uint32_t) width(v0->grad);
 
         if (unlikely(v0i < postpone_before)) {
             if (mode == ADMode::Backward) {
                 ad_trace("ad_traverse(): postponing edge a%u -> a%u due "
-                         "dr.isolate_grad() scope.", v0i, v1i);
+                         "dr.isolate_grad() scope.",
+                         v0i, v1i);
                 ls.scopes.back().postponed.push_back(er);
                 er.id = er.source = er.target = 0;
                 continue;
@@ -1930,13 +1980,14 @@ void ad_traverse(ADMode mode, uint32_t flags) {
         if (unlikely(grad_size != 1 && v0->size != grad_size)) {
             if (grad_size == 0) {
                 ad_trace("ad_traverse(): skipping edge a%u -> a%u (no source "
-                         "gradient).", v0i, v1i);
+                         "gradient).",
+                         v0i, v1i);
                 continue;
             } else {
-                ad_raise("ad_traverse(): gradient propagation encountered "
-                         "variable a%u (\"%s\") with an invalid gradient size "
-                         "(expected size %u, actual size %u)!",
-                         v0i, v0->label ? v0->label : "", v0->size, grad_size);
+                //ad_raise("ad_traverse(): gradient propagation encountered "
+                //         "variable a%u (\"%s\") with an invalid gradient size "
+                //         "(expected size %u, actual size %u)!",
+                //         v0i, v0->label ? v0->label : "", v0->size, grad_size);
             }
         }
 
@@ -1952,23 +2003,40 @@ void ad_traverse(ADMode mode, uint32_t flags) {
                 set_label(v0->grad, tmp);
         }
 
+//#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+        fprintf(stderr, "v0i = %u, v1i = %u\n", v0i, v1i);
+        fprintf(stderr, "");
+        fprintf(stderr, "edge.special = %d\n", (bool)edge.special);
+        fprintf(stderr, "mode == %s\n", mode == ADMode::Forward ? "forward" : "backward");
+        //if (!edge.special)
+        //    fprintf(stderr, "edge.weight = %f\n", edge.weight);
+#endif
+
         if (unlikely(edge.special)) {
+
             if (mode == ADMode::Forward)
                 edge.special->forward(v0, v1, flags);
             else
-                edge.special->backward(v1, v0, flags);
+                edge.special->backward(v1, v0, flags, opt, guiding_t);
 
             if (flags & (uint32_t) ADFlag::ClearEdges) {
                 // Edge may have been invalidated by callback, look up once more
                 Edge &edge2 = state.edges[er.id];
                 if (edge2.source == er.source && edge2.target == er.target) {
                     Special *special2 = edge2.special;
-                    edge2.special = nullptr;
+                    edge2.special     = nullptr;
                     delete special2;
                 }
             }
         } else {
-            v1->mul_accum(v0->grad, edge.weight, v0->size);
+#if defined(DEBUG_PRINT)
+            fprintf(stderr,
+                    "In ad_traverse(): v1->mul_accum(): v0i = %u, v1i = %u, maintain_grad_array = %d\n",
+                    v0i, v1i, (int) maintain_grad_array);
+#endif
+#undef DEBUG_PRINT
+            v1->mul_accum(v0->grad, edge.weight, v0->size, maintain_grad_array);
 
             if (flags & (uint32_t) ADFlag::ClearEdges)
                 edge.weight = Value();
@@ -1991,25 +2059,27 @@ void ad_traverse(ADMode mode, uint32_t flags) {
         if (unlikely(edge.source != er.source || edge.target != er.target))
             ad_fail(
                 "ad_traverse(): internal error: edge a%u -> a%u was garbage "
-                "collected between enqueue and traverse steps!", er.source, er.target);
+                "collected between enqueue and traverse steps!",
+                er.source, er.target);
         else if (unlikely(!edge.visited))
             ad_fail("ad_traverse(): internal error: edge a%u -> a%u is not "
-                    "marked as visited!", er.source, er.target);
+                    "marked as visited!",
+                    er.source, er.target);
 
         edge.visited = 0;
 
-        Variable *source = state[er.source],
-                 *target = state[er.target];
+        Variable *source = state[er.source], *target = state[er.target];
 
         if (flags & (uint32_t) ADFlag::ClearEdges) {
-            ad_trace("ad_traverse(): removing edge a%u -> a%u", er.source, er.target);
+            ad_trace("ad_traverse(): removing edge a%u -> a%u", er.source,
+                     er.target);
 
             // Clear out forward edge
-            uint32_t edge_id_prev = 0,
-                     edge_id_cur = source->next_fwd;
+            uint32_t edge_id_prev = 0, edge_id_cur = source->next_fwd;
             while (edge_id_cur) {
                 Edge &e2 = state.edges[edge_id_cur];
-                ad_trace("ad_traverse(): visiting forward edge a%u -> a%u", e2.source, e2.target);
+                ad_trace("ad_traverse(): visiting forward edge a%u -> a%u",
+                         e2.source, e2.target);
 
                 if (edge_id_cur == er.id) {
                     if (edge_id_prev)
@@ -2018,20 +2088,22 @@ void ad_traverse(ADMode mode, uint32_t flags) {
                         source->next_fwd = e2.next_fwd;
                     break;
                 } else if (unlikely(e2.source != er.source)) {
-                    ad_fail("ad_traverse(): invalid forward edge connectivity!");
+                    ad_fail(
+                        "ad_traverse(): invalid forward edge connectivity!");
                 }
 
                 edge_id_prev = edge_id_cur;
-                edge_id_cur = e2.next_fwd;
+                edge_id_cur  = e2.next_fwd;
             }
 
             if (unlikely(!edge_id_cur))
                 ad_fail("ad_traverse(): could not find forward edge a%u "
-                        "-> a%u", er.source, er.target);
+                        "-> a%u",
+                        er.source, er.target);
 
             // Clear out backward edge
             edge_id_prev = 0;
-            edge_id_cur = target->next_bwd;
+            edge_id_cur  = target->next_bwd;
             while (edge_id_cur) {
                 Edge &e2 = state.edges[edge_id_cur];
 
@@ -2042,16 +2114,18 @@ void ad_traverse(ADMode mode, uint32_t flags) {
                         target->next_bwd = e2.next_bwd;
                     break;
                 } else if (unlikely(e2.target != er.target)) {
-                    ad_fail("ad_traverse(): invalid backward edge connectivity!");
+                    ad_fail(
+                        "ad_traverse(): invalid backward edge connectivity!");
                 }
 
                 edge_id_prev = edge_id_cur;
-                edge_id_cur = e2.next_bwd;
+                edge_id_cur  = e2.next_bwd;
             }
 
             if (unlikely(!edge_id_cur))
                 ad_fail("ad_traverse(): could not find backward edge a%u "
-                        "-> a%u", er.source, er.target);
+                        "-> a%u",
+                        er.source, er.target);
 
             // Postpone deallocation of the edge callback, if there is one
             if (unlikely(edge.special))
@@ -2376,13 +2450,14 @@ template DRJIT_EXPORT uint32_t ad_inc_ref_cond_impl<Value>(uint32_t) noexcept;
 template DRJIT_EXPORT void ad_dec_ref_impl<Value>(uint32_t) noexcept;
 template DRJIT_EXPORT uint32_t ad_new<Value>(const char *, size_t, uint32_t,
                                             uint32_t *, Value *);
-template DRJIT_EXPORT Value ad_grad<Value>(uint32_t, bool);
+template DRJIT_EXPORT Value ad_grad<Value>(uint32_t, bool, bool);
 template DRJIT_EXPORT void ad_set_grad<Value>(uint32_t, const Value &, bool);
 template DRJIT_EXPORT void ad_accum_grad<Value>(uint32_t, const Value &, bool);
 template DRJIT_EXPORT void ad_set_label<Value>(uint32_t, const char *);
 template DRJIT_EXPORT const char *ad_label<Value>(uint32_t);
 template DRJIT_EXPORT void ad_enqueue<Value>(ADMode, uint32_t);
-template DRJIT_EXPORT void ad_traverse<Value>(ADMode, uint32_t);
+template DRJIT_EXPORT void ad_traverse<Value>(ADMode, uint32_t, bool, py::object,
+                                              py::object);
 template DRJIT_EXPORT size_t ad_implicit<Value>();
 template DRJIT_EXPORT void ad_extract_implicit<Value>(size_t, uint32_t*);
 template DRJIT_EXPORT void ad_enqueue_implicit<Value>(size_t);

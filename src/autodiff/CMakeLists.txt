@@ -5,6 +5,9 @@ include_directories(
   ../../ext/drjit-core/ext/lz4
 )
 
+get_target_property(tp drjit TYPE)
+message("drjit TYPE = ${tp}")
+
 if (DRJIT_ENABLE_JIT)
   set(DRJIT_AUTODIFF_VARIANTS ${DRJIT_AUTODIFF_VARIANTS}
     drjit-autodiff-cuda-f32:CUDAArray<float>
@@ -17,10 +20,16 @@ foreach(DRJIT_AUTODIFF_VARIANT ${DRJIT_AUTODIFF_VARIANTS})
   string(REPLACE ":" ";" DRJIT_AUTODIFF_VARIANT ${DRJIT_AUTODIFF_VARIANT})
   list(GET DRJIT_AUTODIFF_VARIANT 0 DRJIT_AUTODIFF_VARIANT_NAME)
   list(GET DRJIT_AUTODIFF_VARIANT 1 DRJIT_AUTODIFF_VARIANT_VALUE)
+
   add_library(${DRJIT_AUTODIFF_VARIANT_NAME} OBJECT
     ../../include/drjit/autodiff.h
     autodiff.cpp
   )
+
+  target_link_libraries(${DRJIT_AUTODIFF_VARIANT_NAME} PRIVATE pybind11::headers)
+  target_link_libraries(${DRJIT_AUTODIFF_VARIANT_NAME} PRIVATE pybind11::embed)
+  #target_link_libraries(${DRJIT_AUTODIFF_VARIANT_NAME} PRIVATE Python::Python)
+
   set_target_properties(${DRJIT_AUTODIFF_VARIANT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
   set(DRJIT_AUTODIFF_OBJECTS ${DRJIT_AUTODIFF_OBJECTS} $<TARGET_OBJECTS:${DRJIT_AUTODIFF_VARIANT_NAME}>)
   string(REPLACE "drjit-autodiff-" "" DRJIT_AUTODIFF_VARIANT_NAME_U ${DRJIT_AUTODIFF_VARIANT_NAME})
@@ -42,10 +51,17 @@ foreach(DRJIT_AUTODIFF_VARIANT ${DRJIT_AUTODIFF_VARIANTS})
   endif()
 endforeach()
 
-add_library(drjit-autodiff SHARED
+pybind11_add_module(
+  drjit-autodiff
+  SHARED THIN_LTO OPT_SIZE
+
   ${DRJIT_AUTODIFF_OBJECTS}
   common.h common.cpp
 )
+
+#target_include_directories(drjit-autodiff INTERFACE ${Python_INCLUDE_DIRS})
+target_link_libraries(drjit-autodiff INTERFACE pybind11::headers pybind11::embed)
+
 target_link_libraries(drjit-autodiff PUBLIC drjit)
 
 if (NOT MSVC)

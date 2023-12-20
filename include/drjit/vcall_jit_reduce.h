@@ -76,6 +76,28 @@ Result vcall_jit_reduce_impl(Func func, const Self &self_,
     Self self = self_ & mask;
     auto [buckets, n_inst] = self.vcall_();
 
+#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+    if (!strcmp(typeid(Func).name(),
+                "class <lambda_a3166cd1409662f7932530c96e6ad55e>")) {
+        fprintf(stderr, "In vcall_jit_reduce_impl():\n");
+        fprintf(stderr, "Result = %s\n", typeid(Result).name());
+        fprintf(stderr, "Func = %s\n", typeid(Func).name());
+        fprintf(stderr, "Self = %s\n", typeid(Self).name());
+        fprintf(stderr, "UInt32 = %s\n", typeid(UInt32).name());
+        fprintf(stderr, "Class = %s\n", typeid(Class).name());
+        fprintf(stderr, "Mask = %s\n", typeid(Mask).name());
+        fprintf(stderr, "self_size = %d\n", (int) self_size);
+        fprintf(stderr, "mask_size = %d\n", (int) mask_size);
+        fprintf(stderr, "n_inst = %d\n", n_inst);
+        fprintf(stderr, "N = sizeof...(Args) = %d\n", (int) N);
+        fprintf(stderr, "Args = ");
+        (fprintf(stderr, "%s, \n", typeid(Args).name()), ...);
+        fprintf(stderr, "\n");
+        printf_async(Mask(true), "self = %u\n", self);
+    }
+#endif
+
     Result result;
     SetSelfHelper self_helper;
     if (n_inst > 0 && self_size > 0) {
@@ -101,6 +123,21 @@ Result vcall_jit_reduce_impl(Func func, const Self &self_,
                 self_helper.set(buckets[i].id, instance_id.index());
 
                 if constexpr (!std::is_same_v<Result, std::nullptr_t>) {
+#if defined(DEBUG_PRINT)
+                    if (!strcmp(typeid(Func).name(),
+                                "class "
+                                "<lambda_a3166cd1409662f7932530c96e6ad55e>")) {
+                        fprintf(stderr, "buckets[%zu].id = %u\n", i, buckets[i].id);
+                        fprintf(stderr, "buckets[%zu].index = %u\n", i,
+                                buckets[i].index);
+                        fprintf(stderr,
+                                "wavefront_size = perm.size() = %zu\n", wavefront_size);
+                        printf_async(Mask(true), "perm = %u\n", perm);
+                        printf_async(Mask(true), "instance_id = %u\n",
+                                     instance_id);
+                    }
+#endif
+#undef DEBUG_PRINT
                     using OrigResult = decltype(func((Class) nullptr, args...));
                     scatter<true>(
                         result,

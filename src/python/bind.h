@@ -461,7 +461,9 @@ auto bind_full(py::class_<Array> &cls, bool /* scalar_mode */ = false) {
                 py::return_value_policy::reference_internal);
 
         if constexpr (Array::IsFloat) {
-            cls.def("grad_", [](const Array &a) { return a.grad_(); });
+            cls.def("grad_", [](const Array &a, bool allow_diff_size) {
+                return a.grad_(false /*fail_if_missing*/, allow_diff_size);
+            });
             cls.def("set_grad_", [](Array &a, dr::detached_t<Array> &value) { a.set_grad_(value); });
             cls.def("accum_grad_", [](Array &a, dr::detached_t<Array> &value) { a.accum_grad_(value); });
             cls.def("set_grad_enabled_", &Array::set_grad_enabled_);
@@ -505,9 +507,10 @@ struct CustomOp : dr::detail::DiffCallback {
         m_handle.attr("forward")();
     }
 
-    virtual void backward() override {
+    virtual void backward(py::object opt = py::none(),
+                          py::object guiding_t = py::none()) override {
         py::gil_scoped_acquire gsa;
-        m_handle.attr("backward")();
+        m_handle.attr("backward")(opt, guiding_t);
     }
 
     ~CustomOp() {
