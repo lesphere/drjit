@@ -188,6 +188,51 @@ auto vcall(const char *name, const Func &func, const Self &self,
     }
 }
 
+template <typename Class, typename Func, typename Self,
+          typename... Args>
+auto vcall_perm(const char *name, const Func &func, const Self &self, int id,
+                uint32_array_t<Self> &perm, const Args &...args) {
+    using Output = decltype(func((Class *) nullptr, args...));
+    using Result = typename vectorize_type<Self, Output>::type;
+
+    DRJIT_MARK_USED(name);
+
+//#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+    if (is_instance<Class, mitsuba::BSDF>{} && !strcmp(name, "eval")) {
+        fprintf(stderr, "Class is BSDF = %d\n",
+                (int) is_instance<Class, mitsuba::BSDF>{});
+        fprintf(stderr, "Class = %s\n", typeid(Class).name());
+        fprintf(stderr, "Func = %s\n", typeid(Func).name());
+        fprintf(stderr, "Self = %s\n", typeid(Self).name());
+        fprintf(stderr, "Output = %s\n", typeid(Output).name());
+        fprintf(stderr, "Result = %s\n", typeid(Result).name());
+        fprintf(stderr, "is_jit_v<Self> = %d\n", is_jit_v<Self>);
+        fprintf(stderr,
+                "(jit_flags() & (uint32_t) JitFlag::VCallRecord) == %d\n",
+                jit_flags() & (uint32_t) JitFlag::VCallRecord);
+        fprintf(stderr, "is_diff_v<Self> = %d\n", is_diff_v<Self>);
+    }
+#endif
+#undef DEBUG_PRINT
+
+    if constexpr (is_jit_v<Self>) {
+        if ((jit_flags() & (uint32_t) JitFlag::VCallRecord) == 0) {
+            return detail::vcall_jit_reduce_perm<Result>(func, self, id, perm, 
+                                                    copy_diff(args)...);
+        } else {
+            if constexpr (is_diff_v<Self>)
+                return detail::vcall_autodiff<Result>(name, func, self,
+                                                      args...);
+            else
+                return detail::vcall_jit_record<Result>(name, func, self,
+                                                        args...);
+        }
+    } else {
+        return detail::vcall_packet<Result>(func, self, args...);
+    }
+}
+
 NAMESPACE_END(detail)
 
 template <typename Class, typename Value>

@@ -588,7 +588,7 @@ struct JitArray : ArrayBase<Value_, is_mask_v<Value_>, Derived_> {
     Value entry(size_t offset) const {
         ActualValue out;
         jit_var_read(m_index, offset, &out);
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 #if defined(DEBUG_PRINT)
         if constexpr (IsClass)
             fprintf(stderr,

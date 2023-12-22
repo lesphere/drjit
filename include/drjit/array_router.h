@@ -1335,6 +1335,23 @@ DRJIT_INNER_REDUCTION(mean)
 // -----------------------------------------------------------------------
 
 template <typename T> DRJIT_INLINE bool schedule(const T &value) {
+//#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+    fprintf(stderr, "\nIn array_router.h schedule():\n");
+    fprintf(stderr, "is_jit_v<%s> = %d\n", typeid(T).name(), (int) is_jit_v<T>);
+    if constexpr (is_jit_v<T>) {
+        fprintf(stderr, "array_depth_v < %s > = %zu\n", typeid(T).name(),
+                array_depth_v<T>);
+        if constexpr (array_depth_v < T >> 1)
+            fprintf(stderr, "type of value.derived() = %s, value.derived().size() = %zu\n",
+                    typeid(value.derived()).name(), value.derived().size());
+        fprintf(stderr, "is_tensor_v<%s> = %d\n", typeid(T).name(),
+                (int) is_tensor_v<T>);
+    }
+    fprintf(stderr, "is_drjit_struct_v<%s> = %d\n", typeid(T).name(),
+            (int) is_drjit_struct_v<T>);
+#endif
+#undef DEBUG_PRINT
     if constexpr (is_jit_v<T>) {
         if constexpr (array_depth_v<T> > 1) {
             bool result = false;
