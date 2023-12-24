@@ -4312,7 +4312,7 @@ def enqueue(mode, *args):
                 enqueue(mode, getattr(a, k))
 
 
-def traverse(dtype, mode, flags=_dr.ADFlag.Default, maintain_grad_array=False, opt=None, guiding_t=None):
+def traverse(dtype, mode, flags=_dr.ADFlag.Default, maintain_grad_array=False, opt=None, guiding_t=None, id=0):
     '''
     Propagate derivatives through the enqueued set of edges in the AD computational
     graph in the direction specified by ``mode``.
@@ -4353,7 +4353,7 @@ def traverse(dtype, mode, flags=_dr.ADFlag.Default, maintain_grad_array=False, o
     #     for i, key in enumerate(keys):
     #         print(f'before dtype.traverse_: grad[{key}] = {grad(opt[key])}', flush=True)
 
-    dtype.traverse_(mode, flags, maintain_grad_array, opt, guiding_t)
+    dtype.traverse_(mode, flags, maintain_grad_array, opt, guiding_t, id)
 
     # if opt != None:
     #     keys = opt.keys()
@@ -4455,7 +4455,7 @@ def forward(arg, flags=_dr.ADFlag.Default):
     forward_from(arg, flags)
 
 
-def backward_from(arg, maintain_grad_array=False, opt=None, guiding_t=None, flags=_dr.ADFlag.Default):
+def backward_from(arg, maintain_grad_array=False, opt=None, guiding_t=None, id=0, flags=_dr.ADFlag.Default):
     '''
     Backward propagates gradients from a provided Dr.Jit differentiable array.
 
@@ -4483,7 +4483,7 @@ def backward_from(arg, maintain_grad_array=False, opt=None, guiding_t=None, flag
     #     for i, key in enumerate(keys):
     #         print(f'after enqueue: grad[{key}] = {grad(opt[key])}', flush=True)
 
-    traverse(ta, _dr.ADMode.Backward, flags, maintain_grad_array, opt, guiding_t)
+    traverse(ta, _dr.ADMode.Backward, flags, maintain_grad_array, opt, guiding_t, id)
 
     # if opt != None:
     #     keys = opt.keys()
@@ -4527,7 +4527,7 @@ def backward_to(*args, flags=_dr.ADFlag.Default):
     return grad(args) if len(args) > 1 else grad(*args)
 
 
-def backward(arg, maintain_grad_array=False, opt=None, guiding_t=None, flags=_dr.ADFlag.Default):
+def backward(arg, maintain_grad_array=False, opt=None, guiding_t=None, id=0, flags=_dr.ADFlag.Default):
     '''
     Backward propagate gradients from a provided Dr.Jit differentiable array.
 
@@ -4542,7 +4542,7 @@ def backward(arg, maintain_grad_array=False, opt=None, guiding_t=None, flags=_dr
         flags (ADFlag | int): flags to control what should and should not be
           destructed during the traversal. The default value is ``ADFlag.Default``.
     '''
-    backward_from(arg, maintain_grad_array, opt, guiding_t, flags)
+    backward_from(arg, maintain_grad_array, opt, guiding_t, id, flags)
 
     # keys = opt.keys()
     # for i, key in enumerate(keys):

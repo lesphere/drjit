@@ -186,7 +186,7 @@ namespace drjit {
         struct DRJIT_EXPORT DiffCallback {
             virtual void forward() = 0;
             virtual void backward(py::object = py::none(),
-                                  py::object = py::none()) = 0;
+                                  py::object = py::none(), int = 0) = 0;
             virtual ~DiffCallback();
         };
 

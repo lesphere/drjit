@@ -520,7 +520,8 @@ struct Special {
                           const Variable * /* target */,
                           uint32_t /* flags */,
                           py::object = py::none() /* optimizer */,
-                          py::object = py::none() /* guiding samples */) const {
+                          py::object = py::none() /* guiding samples */,
+                          int        = 0 /* instance id */) const {
         ad_fail("Special::backward(): not implemented!");
     }
 
@@ -1059,7 +1060,7 @@ template <typename Value> struct MaskEdge : Special {
     MaskEdge(const Mask &mask, bool negate) : mask(mask), negate(negate) { }
 
     void backward(Variable *source, const Variable *target, uint32_t,
-                  py::object, py::object) const override {
+                  py::object, py::object, int) const override {
         source->accum(!negate ? detail::and_(target->grad, mask)
                               : detail::andnot_(target->grad, mask),
                       target->size);
@@ -1077,7 +1078,7 @@ template <typename Value> struct MaskEdge : Special {
 
 template <typename Value> struct SpecialConnection : Special {
     void backward(Variable *, const Variable *target, uint32_t, py::object,
-                  py::object) const override {
+                  py::object, int) const override {
         if (target->size)
             const_cast<Variable *>(target)->ref_count_grad++;
     }
@@ -1141,14 +1142,14 @@ template <typename Value> struct SpecialCallback : Special {
         : callback(callback), scope(std::move(scope)) { }
 
     void backward(Variable *, const Variable *target, uint32_t flags,
-                  py::object opt, py::object guiding_t) const override {
+                  py::object opt, py::object guiding_t, int id) const override {
         ad_trace("ad_traverse(): invoking user callback ..");
         uint32_t edge = target->next_fwd;
     
         /* leave critical section */ {
             unlock_guard<std::mutex> guard(state.mutex);
             PushScope push(scope);
-            callback->backward(opt, guiding_t);
+            callback->backward(opt, guiding_t, id);
         }
         if (edge && state.edges[edge].next_fwd) { // fan-in > 1, update ref
                                                   // counts
@@ -1339,7 +1340,7 @@ template <typename Value> struct GatherEdge : Special {
     }
 
     void backward(Variable *source, const Variable *target, uint32_t,
-                  py::object, py::object) const override {
+                  py::object, py::object, int) const override {
         Value &source_grad = (Value &) source->grad;
         uint32_t size = source->size;
 
@@ -1458,7 +1459,7 @@ template <typename Value> struct ScatterEdge : Special {
     }
 
     void backward(Variable *source, const Variable *target, uint32_t,
-                  py::object, py::object) const override {
+                  py::object, py::object, int) const override {
         MaskGuard guard(mask_stack);
         source->accum(gather<Value>(target->grad, offset, mask),
                       (uint32_t) width(offset));
@@ -1830,7 +1831,7 @@ template <typename T> void ad_enqueue(ADMode mode, uint32_t index) {
 
 template <typename Value>
 void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array,
-                 py::object opt, py::object guiding_t) {
+                 py::object opt, py::object guiding_t, int id) {
     LocalState &ls = local_state;
 
     std::vector<EdgeRef> &todo_tls = ls.todo, todo;
@@ -2018,7 +2019,7 @@ void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array,
             if (mode == ADMode::Forward)
                 edge.special->forward(v0, v1, flags);
             else
-                edge.special->backward(v1, v0, flags, opt, guiding_t);
+                edge.special->backward(v1, v0, flags, opt, guiding_t, id);
 
             if (flags & (uint32_t) ADFlag::ClearEdges) {
                 // Edge may have been invalidated by callback, look up once more
@@ -2457,7 +2458,7 @@ template DRJIT_EXPORT void ad_set_label<Value>(uint32_t, const char *);
 template DRJIT_EXPORT const char *ad_label<Value>(uint32_t);
 template DRJIT_EXPORT void ad_enqueue<Value>(ADMode, uint32_t);
 template DRJIT_EXPORT void ad_traverse<Value>(ADMode, uint32_t, bool, py::object,
-                                              py::object);
+                                              py::object, int);
 template DRJIT_EXPORT size_t ad_implicit<Value>();
 template DRJIT_EXPORT void ad_extract_implicit<Value>(size_t, uint32_t*);
 template DRJIT_EXPORT void ad_enqueue_implicit<Value>(size_t);

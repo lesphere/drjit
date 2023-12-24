@@ -131,7 +131,7 @@ struct DiffVCall : CustomOp<DiffType, Result, ConstStr, Self, Func, Args...> {
         (Base::template set_grad_in<3 + Is>(grad_in.template get<Is>()), ...);
     }
 
-    void backward(py::object = py::none(), py::object = py::none()) override {
+    void backward(py::object = py::none(), py::object = py::none(), int = 0) override {
         backward_impl(std::make_index_sequence<sizeof...(Args)>());
     }
 

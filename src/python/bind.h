@@ -508,9 +508,9 @@ struct CustomOp : dr::detail::DiffCallback {
     }
 
     virtual void backward(py::object opt = py::none(),
-                          py::object guiding_t = py::none()) override {
+                          py::object guiding_t = py::none(), int id = 0) override {
         py::gil_scoped_acquire gsa;
-        m_handle.attr("backward")(opt, guiding_t);
+        m_handle.attr("backward")(opt, guiding_t, id);
     }
 
     ~CustomOp() {

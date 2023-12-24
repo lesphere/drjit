@@ -67,7 +67,7 @@ template <typename Value> void ad_enqueue(ADMode mode, uint32_t index);
 /// Propagate derivatives through the enqueued set of edges
 template <typename Value>
 void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array = false, py::object opt = py::none(),
-                 py::object guiding_t = py::none());
+                 py::object guiding_t = py::none(), int id = 0);
 
 /// Number of observed implicit dependencies
 template <typename Value> size_t ad_implicit();
@@ -122,7 +122,7 @@ template <typename Value> bool ad_enabled() noexcept(true);
 /// Custom graph edge for implementing custom differentiable operations
 struct DRJIT_AD_EXPORT DiffCallback {
     virtual void forward() = 0;
-    virtual void backward(py::object = py::none(), py::object = py::none()) = 0;
+    virtual void backward(py::object = py::none(), py::object = py::none(), int = 0) = 0;
     virtual ~DiffCallback();
 };
 
@@ -1631,10 +1631,11 @@ struct DiffArray : ArrayBase<value_t<Type_>, is_mask_v<Type_>, DiffArray<Type_>>
     static void traverse_(ADMode mode, uint32_t flags,
                           bool maintain_grad_array = false,
                           py::object opt       = py::none(),
-                          py::object guiding_t = py::none()) {
+                          py::object guiding_t = py::none(),
+                          int id = 0) {
         DRJIT_MARK_USED(flags);
         if constexpr (IsEnabled) 
-            detail::ad_traverse<Type>(mode, flags, maintain_grad_array, opt, guiding_t);
+            detail::ad_traverse<Type>(mode, flags, maintain_grad_array, opt, guiding_t, id);
     }
 
     void set_label_(const char *label) {
@@ -1837,7 +1838,7 @@ protected:
     extern template DRJIT_AD_EXPORT const char *ad_graphviz<T>();              \
     extern template DRJIT_AD_EXPORT void ad_enqueue<T>(ADMode, uint32_t);      \
     extern template DRJIT_AD_EXPORT void ad_traverse<T>(ADMode, uint32_t,      \
-        bool, py::object, py::object);                                         \
+        bool, py::object, py::object, int);                                    \
     extern template DRJIT_AD_EXPORT uint32_t ad_new_select<T, Mask>(           \
         const char *, size_t, const Mask &, uint32_t, uint32_t);               \
     extern template DRJIT_AD_EXPORT uint32_t ad_new_gather<T, Mask, Index>(    \

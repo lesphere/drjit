@@ -52,7 +52,7 @@ public:
     virtual void forward() = 0;
 
     /// Callback to implement backward-mode derivatives
-    virtual void backward(py::object = py::none(), py::object = py::none()) = 0;
+    virtual void backward(py::object = py::none(), py::object = py::none(), int = 0) = 0;
 
     /// Return a descriptive name (used in GraphViz output)
     virtual const char *name() const = 0;
