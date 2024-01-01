@@ -209,6 +209,7 @@ template <typename Result, typename Func, typename Self, size_t... Is,
           typename... Args>
 Result vcall_jit_reduce_perm_impl(Func func, const Self &self_, int id,
                                   uint32_array_t<Self> &perm_,
+                                  int &size_valid,
                                   std::index_sequence<Is...>,
                                   const Args &...args) {
     using UInt32                        = uint32_array_t<Self>;
@@ -280,7 +281,7 @@ Result vcall_jit_reduce_perm_impl(Func func, const Self &self_, int id,
         result           = empty<Result>(self_size);
         size_t last_size = 0;
 
-        size_t total_size_valid = 0;
+        size_valid = 0;
 
         for (size_t i = 0; i < n_inst; ++i) {
             UInt32 perm           = UInt32::borrow(buckets[i].index);
@@ -340,9 +341,9 @@ Result vcall_jit_reduce_perm_impl(Func func, const Self &self_, int id,
                 // i.e. the bucket have the same instance
                 if (instance_id == id) {
                     scatter<true>(perm_, perm,
-                                  arange<UInt32>(total_size_valid,
-                                       total_size_valid + wavefront_size));
-                    total_size_valid += wavefront_size;
+                                  arange<UInt32>(size_valid,
+                                                 size_valid + wavefront_size));
+                    size_valid += wavefront_size;
                 }
             } else {
                 if constexpr (!std::is_same_v<Result, std::nullptr_t>)
@@ -398,9 +399,11 @@ Result vcall_jit_reduce(const Func &func, const Self &self,
 
 template <typename Result, typename Func, typename Self, typename... Args>
 Result vcall_jit_reduce_perm(const Func &func, const Self &self, int id,
-                             uint32_array_t<Self> &perm, const Args &...args) {
+                             uint32_array_t<Self> &perm,
+                             int &size_valid, const Args &...args) {
     return vcall_jit_reduce_perm_impl<Result>(
-        func, self, id, perm, std::make_index_sequence<sizeof...(Args)>(),
+        func, self, id, perm,
+        size_valid, std::make_index_sequence<sizeof...(Args)>(),
         args...);
 }
 

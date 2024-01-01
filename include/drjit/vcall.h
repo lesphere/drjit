@@ -191,7 +191,7 @@ auto vcall(const char *name, const Func &func, const Self &self,
 template <typename Class, typename Func, typename Self,
           typename... Args>
 auto vcall_perm(const char *name, const Func &func, const Self &self, int id,
-                uint32_array_t<Self> &perm, const Args &...args) {
+                uint32_array_t<Self> &perm, int &size_valid, const Args &...args) {
     using Output = decltype(func((Class *) nullptr, args...));
     using Result = typename vectorize_type<Self, Output>::type;
 
@@ -218,8 +218,8 @@ auto vcall_perm(const char *name, const Func &func, const Self &self, int id,
 
     if constexpr (is_jit_v<Self>) {
         if ((jit_flags() & (uint32_t) JitFlag::VCallRecord) == 0) {
-            return detail::vcall_jit_reduce_perm<Result>(func, self, id, perm, 
-                                                    copy_diff(args)...);
+            return detail::vcall_jit_reduce_perm<Result>(
+                func, self, id, perm, size_valid, copy_diff(args)...);
         } else {
             if constexpr (is_diff_v<Self>)
                 return detail::vcall_autodiff<Result>(name, func, self,
