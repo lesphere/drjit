@@ -133,6 +133,11 @@ Result vcall_jit_reduce(const Func &func, const Self &self,
                         const Args &... args);
 
 template <typename Result, typename Func, typename Self, typename... Args>
+Result vcall_jit_reduce_perm(const Func &func, const Self &self, int id,
+                             uint32_array_t<Self> &perm, int &size_valid,
+                             const Args &...args);
+
+template <typename Result, typename Func, typename Self, typename... Args>
 Result vcall_jit_record(const char *name, const Func &func, Self &self,
                         const Args &... args);
 

@@ -49,10 +49,11 @@ public:
     virtual Output eval(const Input&... input) = 0;
 
     /// Callback to implement forward-mode derivatives
-    virtual void forward() = 0;
+    virtual void forward(py::object = none()) = 0;
 
     /// Callback to implement backward-mode derivatives
-    virtual void backward(py::object = py::none(), py::object = py::none(), int = 0) = 0;
+    virtual void backward(py::object = py::none(), py::object = py::none(),
+                          int = 0, py::object = py::none()) = 0;
 
     /// Return a descriptive name (used in GraphViz output)
     virtual const char *name() const = 0;

@@ -502,15 +502,16 @@ struct CustomOp : dr::detail::DiffCallback {
         m_handle.inc_ref();
     }
 
-    virtual void forward() override {
+    virtual void forward(py::object model = py::none()) override {
         py::gil_scoped_acquire gsa;
-        m_handle.attr("forward")();
+        m_handle.attr("forward")(model);
     }
 
     virtual void backward(py::object opt = py::none(),
-                          py::object guiding_t = py::none(), int id = 0) override {
+                          py::object guiding_t = py::none(), int id = 0,
+                          py::object model = py::none()) override {
         py::gil_scoped_acquire gsa;
-        m_handle.attr("backward")(opt, guiding_t, id);
+        m_handle.attr("backward")(opt, guiding_t, id, model);
     }
 
     ~CustomOp() {

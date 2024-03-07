@@ -247,6 +247,19 @@ struct Variable {
         if constexpr (is_array_v<T>) {
             bool grad_valid = is_valid(grad);
 
+#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+            fprintf(stderr,
+                    "In autodiff.cpp accum(): label = %s, size = %u, "
+                    "grad_valid = %d\n",
+                    label, size, (int) grad_valid);
+            fprintf(stderr,
+                    "grad.index = %u, grad.size = %zu, src_size = %u, v.index "
+                    "= %u, v.size = %zu\n",
+                    grad.index(), grad.size(), src_size, v.index(), v.size());
+#endif
+#undef DEBUG_PRINT
+
             if (size == 1 && src_size != 1) {
                 /* When this variable is scalar (size == 1) and the source is
                    not (src_size != 1), the gradient must be reduced to a single
@@ -314,6 +327,27 @@ struct Variable {
         if constexpr (is_array_v<T>) {
             bool grad_valid = is_valid(grad);
 
+#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+            // fprintf(stderr, "state.variables index: size = %u\n",
+            // state.variables.size()); for (auto it : state.variables) {
+            //     fprintf(stderr, "%u\n", it.first);
+            // }
+            // fprintf(stderr, "In mul_accum(): grad_resize(src_size =
+            // %u)\n", src_size); grad.resize(src_size); fprintf(stderr,
+            // "grad_resize() success\n");
+            fprintf(
+                stderr,
+                "In autodiff.cpp mul_accum(): label = %s, size = %u, grad_valid = %d, resize = %d\n",
+                label, size, (int) grad_valid, (int) resize);
+            fprintf(stderr,
+                    "grad.index = %u, grad.size = %zu, src_size = %u, v1.index "
+                    "= %u, v1.size = %zu, v2.index = %u, "
+                    "v2.size = %zu\n",
+                    grad.index(), grad.size(), src_size, v1.index(), v1.size(),
+                    v2.index(), v2.size());
+#endif
+
             if (size == 1 && src_size != 1) {
                 /* When this variable is scalar (size == 1) and the source is
                    not (src_size != 1), the gradient must be reduced to a single
@@ -331,23 +365,6 @@ struct Variable {
                     }
                 }
 
-//#define DEBNG_PRINT
-#if defined(DEBUG_PRINT)
-                // fprintf(stderr, "state.variables index: size = %u\n",
-                // state.variables.size()); for (auto it : state.variables) {
-                //     fprintf(stderr, "%u\n", it.first);
-                // }
-                // fprintf(stderr, "In mul_accum(): grad_resize(src_size =
-                // %u)\n", src_size); grad.resize(src_size); fprintf(stderr,
-                // "grad_resize() success\n");
-                fprintf(stderr, "In autodiff.cpp mul_accum(): grad_valid = %d, resize = %d\n",
-                        (int) grad_valid, (int) resize);
-                fprintf(stderr,
-                        "grad.index = %u, v3.index = %u, grad.size = %zu, src_size = %u, v1.size = %zu, v2.size = %zu, v3.size = %zu\n",
-                        grad.index(), v3.index(), grad.size(), src_size, v1.size(), v2.size(), v3.size());
-#endif
-#undef DEBUG_PRINT
-
                 if (grad_valid) {
                     /* resize grad to src_size to avoid sum and maintain per-ray
                        grad */
@@ -363,6 +380,13 @@ struct Variable {
                 else
                     grad = v1 * v2;
             }
+
+#if defined(DEBUG_PRINT)
+            fprintf(stderr, "grad.index = %u, grad.size = %zu\n", grad.index(),
+                    grad.size());
+#endif
+#undef DEBUG_PRINT
+
         } else {
             grad = fmadd(v1, v2, grad);
         }
@@ -521,12 +545,15 @@ struct Special {
                           uint32_t /* flags */,
                           py::object = py::none() /* optimizer */,
                           py::object = py::none() /* guiding samples */,
-                          int        = 0 /* instance id */) const {
+                          int        = 0 /* instance id */,
+                          py::object = py::none() /* guiding model */) const {
         ad_fail("Special::backward(): not implemented!");
     }
 
-    virtual void forward(const Variable * /* source */, Variable * /* target */,
-                         uint32_t /* flags */) const {
+    virtual void forward(const Variable * /* source */,
+                         Variable * /* target */,
+                         uint32_t /* flags */,
+                         py::object = py::none() /* guiding model */) const {
         ad_fail("Special::forward(): not implemented!");
     }
 
@@ -1060,13 +1087,14 @@ template <typename Value> struct MaskEdge : Special {
     MaskEdge(const Mask &mask, bool negate) : mask(mask), negate(negate) { }
 
     void backward(Variable *source, const Variable *target, uint32_t,
-                  py::object, py::object, int) const override {
+                  py::object, py::object, int, py::object) const override {
         source->accum(!negate ? detail::and_(target->grad, mask)
                               : detail::andnot_(target->grad, mask),
                       target->size);
     }
 
-    void forward(const Variable *source, Variable *target, uint32_t) const override {
+    void forward(const Variable *source, Variable *target, uint32_t,
+                 py::object) const override {
         target->accum(!negate ? detail::and_(source->grad, mask)
                               : detail::andnot_(source->grad, mask),
                       source->size);
@@ -1078,12 +1106,13 @@ template <typename Value> struct MaskEdge : Special {
 
 template <typename Value> struct SpecialConnection : Special {
     void backward(Variable *, const Variable *target, uint32_t, py::object,
-                  py::object, int) const override {
+                  py::object, int, py::object) const override {
         if (target->size)
             const_cast<Variable *>(target)->ref_count_grad++;
     }
 
-    void forward(const Variable *source, Variable *, uint32_t) const override {
+    void forward(const Variable *source, Variable *, uint32_t,
+                 py::object) const override {
         if (source->size)
             const_cast<Variable *>(source)->ref_count_grad++;
     }
@@ -1142,14 +1171,15 @@ template <typename Value> struct SpecialCallback : Special {
         : callback(callback), scope(std::move(scope)) { }
 
     void backward(Variable *, const Variable *target, uint32_t flags,
-                  py::object opt, py::object guiding_t, int id) const override {
+                  py::object opt, py::object guiding_t, int id,
+                  py::object model) const override {
         ad_trace("ad_traverse(): invoking user callback ..");
         uint32_t edge = target->next_fwd;
     
         /* leave critical section */ {
             unlock_guard<std::mutex> guard(state.mutex);
             PushScope push(scope);
-            callback->backward(opt, guiding_t, id);
+            callback->backward(opt, guiding_t, id, model);
         }
         if (edge && state.edges[edge].next_fwd) { // fan-in > 1, update ref
                                                   // counts
@@ -1169,13 +1199,14 @@ template <typename Value> struct SpecialCallback : Special {
         }
     }
 
-    void forward(const Variable *source, Variable *, uint32_t flags) const override {
+    void forward(const Variable *source, Variable *, uint32_t flags,
+                 py::object model) const override {
         ad_trace("ad_traverse(): invoking user callback ..");
         uint32_t edge = source->next_bwd;
         /* leave critical section */ {
             unlock_guard<std::mutex> guard(state.mutex);
             PushScope push(scope);
-            callback->forward();
+            callback->forward(model);
         }
         if (edge && state.edges[edge].next_bwd) { // fan-in > 1, update ref counts
             do {
@@ -1340,7 +1371,7 @@ template <typename Value> struct GatherEdge : Special {
     }
 
     void backward(Variable *source, const Variable *target, uint32_t,
-                  py::object, py::object, int) const override {
+                  py::object, py::object, int, py::object) const override {
         Value &source_grad = (Value &) source->grad;
         uint32_t size = source->size;
 
@@ -1362,7 +1393,8 @@ template <typename Value> struct GatherEdge : Special {
             scatter_reduce(ReduceOp::Add, source_grad, target->grad, offset, mask);
     }
 
-    void forward(const Variable *source, Variable *target, uint32_t) const override {
+    void forward(const Variable *source, Variable *target, uint32_t,
+                 py::object) const override {
         MaskGuard guard(mask_stack);
         target->accum(gather<Value>(source->grad, offset, mask),
                       (uint32_t) width(offset));
@@ -1459,13 +1491,14 @@ template <typename Value> struct ScatterEdge : Special {
     }
 
     void backward(Variable *source, const Variable *target, uint32_t,
-                  py::object, py::object, int) const override {
+                  py::object, py::object, int, py::object) const override {
         MaskGuard guard(mask_stack);
         source->accum(gather<Value>(target->grad, offset, mask),
                       (uint32_t) width(offset));
     }
 
-    void forward(const Variable *source, Variable *target, uint32_t) const override {
+    void forward(const Variable *source, Variable *target, uint32_t,
+                 py::object) const override {
         Value &target_grad = (Value &) target->grad;
         uint32_t size = target->size;
 
@@ -1607,13 +1640,21 @@ T ad_grad(uint32_t index, bool fail_if_missing, bool allow_diff_size) {
     const Variable &v = it->second;
     T result          = v.grad;
 
- //#define DEBUG_PRINT
+ #define DEBUG_PRINT
 #if defined(DEBUG_PRINT)
-    fprintf(stderr, "ad_grad(): index = %d\n", index);
+    fprintf(stderr, "\nIn autodiff.cpp ad_grad():\n");
+    fprintf(stderr, "index = %d\n", index);
     fprintf(stderr, "is_jit_v<%s> = %d\n", typeid(T).name(), is_jit_v<T>);
     fprintf(stderr, "is_valid(result) = %d\n", is_valid(result));
-    fprintf(stderr, "In autodiff.cpp ad_grad(): allow_diff_size = %d\n",
+    fprintf(stderr, "allow_diff_size = %d\n",
             (int) allow_diff_size);
+    if constexpr (is_jit_v<T>) {
+        if (is_valid(result)) {
+            fprintf(stderr,
+                    "label = %s, result.size() = %zu, v.size = %u\n",
+                    v.label, result.size(), v.size);
+        }
+    }
 #endif
 #undef DEBUG_PRINT
 
@@ -1831,7 +1872,7 @@ template <typename T> void ad_enqueue(ADMode mode, uint32_t index) {
 
 template <typename Value>
 void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array,
-                 py::object opt, py::object guiding_t, int id) {
+                 py::object opt, py::object guiding_t, int id, py::object model) {
     LocalState &ls = local_state;
 
     std::vector<EdgeRef> &todo_tls = ls.todo, todo;
@@ -2017,9 +2058,9 @@ void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array,
         if (unlikely(edge.special)) {
 
             if (mode == ADMode::Forward)
-                edge.special->forward(v0, v1, flags);
+                edge.special->forward(v0, v1, flags, model);
             else
-                edge.special->backward(v1, v0, flags, opt, guiding_t, id);
+                edge.special->backward(v1, v0, flags, opt, guiding_t, id, model);
 
             if (flags & (uint32_t) ADFlag::ClearEdges) {
                 // Edge may have been invalidated by callback, look up once more
@@ -2458,7 +2499,7 @@ template DRJIT_EXPORT void ad_set_label<Value>(uint32_t, const char *);
 template DRJIT_EXPORT const char *ad_label<Value>(uint32_t);
 template DRJIT_EXPORT void ad_enqueue<Value>(ADMode, uint32_t);
 template DRJIT_EXPORT void ad_traverse<Value>(ADMode, uint32_t, bool, py::object,
-                                              py::object, int);
+                                              py::object, int, py::object);
 template DRJIT_EXPORT size_t ad_implicit<Value>();
 template DRJIT_EXPORT void ad_extract_implicit<Value>(size_t, uint32_t*);
 template DRJIT_EXPORT void ad_enqueue_implicit<Value>(size_t);
