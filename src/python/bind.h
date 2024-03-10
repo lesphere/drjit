@@ -507,11 +507,11 @@ struct CustomOp : dr::detail::DiffCallback {
         m_handle.attr("forward")(model);
     }
 
-    virtual void backward(py::object opt = py::none(),
+    virtual void backward(bool maintain_grad_array = false, py::object opt = py::none(),
                           py::object guiding_t = py::none(), int id = 0,
                           py::object model = py::none()) override {
         py::gil_scoped_acquire gsa;
-        m_handle.attr("backward")(opt, guiding_t, id, model);
+        m_handle.attr("backward")(maintain_grad_array, opt, guiding_t, id, model);
     }
 
     ~CustomOp() {

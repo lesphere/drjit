@@ -1893,12 +1893,14 @@ constexpr uint32_t operator ~(ADFlag f1)              { return ~(uint32_t) f1; }
 constexpr uint32_t operator +(ADFlag e)               { return (uint32_t) e; }
 
 
-template <typename...Ts> void traverse(ADMode mode, uint32_t flags = (uint32_t) ADFlag::Default) {
+template <typename... Ts>
+void traverse(ADMode mode, uint32_t flags = (uint32_t) ADFlag::Default,
+              bool maintain_grad_array = false) {
     using Type = leaf_array_t<Ts...>;
     DRJIT_MARK_USED(mode);
     DRJIT_MARK_USED(flags);
     if constexpr (is_diff_v<Type> && std::is_floating_point_v<scalar_t<Type>>)
-        Type::traverse_(mode, flags);
+        Type::traverse_(mode, flags, maintain_grad_array);
 }
 
 namespace detail {

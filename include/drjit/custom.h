@@ -52,7 +52,7 @@ public:
     virtual void forward(py::object = none()) = 0;
 
     /// Callback to implement backward-mode derivatives
-    virtual void backward(py::object = py::none(), py::object = py::none(),
+    virtual void backward(bool = false, py::object = py::none(), py::object = py::none(),
                           int = 0, py::object = py::none()) = 0;
 
     /// Return a descriptive name (used in GraphViz output)
@@ -334,6 +334,14 @@ template <typename Custom, typename... Input> auto custom(const Input&... input)
         }
 
         custom->clear_implicit_dependencies();
+
+#define DEBUG_PRINT
+#if defined(DEBUG_PRINT)
+        fprintf(stderr,
+                "Connect the two nodes using a custom edge with a callback:\n");
+        fprintf(stderr, "in_var = %u, out_var = %u, Custom = %s\n", in_var, out_var, typeid(Custom).name());
+#endif
+#undef DEBUG_PRINT
 
         // Connect the two nodes using a custom edge with a callback
         detail::ad_add_edge<Type>(in_var, out_var, custom.release());

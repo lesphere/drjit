@@ -243,7 +243,7 @@ struct Variable {
      * optimizations.
      */
     template <typename T = Value>
-    void accum(const T& v, uint32_t src_size) {
+    void accum(const T& v, uint32_t src_size, bool resize = false) {
         if constexpr (is_array_v<T>) {
             bool grad_valid = is_valid(grad);
 
@@ -251,8 +251,8 @@ struct Variable {
 #if defined(DEBUG_PRINT)
             fprintf(stderr,
                     "In autodiff.cpp accum(): label = %s, size = %u, "
-                    "grad_valid = %d\n",
-                    label, size, (int) grad_valid);
+                    "grad_valid = %d, resize = %d\n",
+                    label, size, (int) grad_valid, (int) resize);
             fprintf(stderr,
                     "grad.index = %u, grad.size = %zu, src_size = %u, v.index "
                     "= %u, v.size = %zu\n",
@@ -268,15 +268,29 @@ struct Variable {
                    broadcast to all elements. */
 
                 Value v2;
-                if (v.size() == 1) {
-                    v2 = v * scalar_t<Value>(src_size);
+                if (!resize) {
+                    if (v.size() == 1) {
+                        v2 = v * scalar_t<Value>(src_size);
+                    } else {
+                        assert(v.size() == src_size);
+                        v2 = sum(v);
+                    }
                 } else {
-                    assert(v.size() == src_size);
-                    v2 = sum(v);
+                    if (v.size() == 1) {
+                        fprintf(stderr,
+                                "warning: in accum(), resize when src_size = %d, "
+                                "but v.size() == 1\n",
+                                src_size);
+                    }
                 }
 
-                if (grad_valid)
+                if (grad_valid) {
+                    /* resize grad to src_size to avoid sum and maintain per-ray
+                       grad */
+                    if (resize)
+                        grad.resize(src_size);
                     grad += v2;
+                }
                 else
                     grad = std::move(v2);
             } else {
@@ -362,6 +376,13 @@ struct Variable {
                     } else {
                         assert(v3.size() == src_size);
                         v3 = sum(v3);
+                    }
+                } else {
+                    if (v3.size() == 1) {
+                        fprintf(stderr,
+                                "warning: in mul_accum(), resize when src_size = %d, "
+                                "but v3.size() == 1\n",
+                                src_size);
                     }
                 }
 
@@ -543,6 +564,7 @@ struct Special {
     virtual void backward(Variable * /* source */,
                           const Variable * /* target */,
                           uint32_t /* flags */,
+                          bool /* maintain_grad_array */,
                           py::object = py::none() /* optimizer */,
                           py::object = py::none() /* guiding samples */,
                           int        = 0 /* instance id */,
@@ -1086,11 +1108,11 @@ uint32_t ad_new(const char *label, size_t size, uint32_t op_count,
 template <typename Value> struct MaskEdge : Special {
     MaskEdge(const Mask &mask, bool negate) : mask(mask), negate(negate) { }
 
-    void backward(Variable *source, const Variable *target, uint32_t,
+    void backward(Variable *source, const Variable *target, uint32_t, bool maintain_grad_array,
                   py::object, py::object, int, py::object) const override {
         source->accum(!negate ? detail::and_(target->grad, mask)
                               : detail::andnot_(target->grad, mask),
-                      target->size);
+                      target->size, maintain_grad_array);
     }
 
     void forward(const Variable *source, Variable *target, uint32_t,
@@ -1105,7 +1127,7 @@ template <typename Value> struct MaskEdge : Special {
 };
 
 template <typename Value> struct SpecialConnection : Special {
-    void backward(Variable *, const Variable *target, uint32_t, py::object,
+    void backward(Variable *, const Variable *target, uint32_t, bool, py::object,
                   py::object, int, py::object) const override {
         if (target->size)
             const_cast<Variable *>(target)->ref_count_grad++;
@@ -1170,7 +1192,7 @@ template <typename Value> struct SpecialCallback : Special {
     SpecialCallback(DiffCallback *callback, Scope &&scope)
         : callback(callback), scope(std::move(scope)) { }
 
-    void backward(Variable *, const Variable *target, uint32_t flags,
+    void backward(Variable *, const Variable *target, uint32_t flags, bool maintain_grad_array,
                   py::object opt, py::object guiding_t, int id,
                   py::object model) const override {
         ad_trace("ad_traverse(): invoking user callback ..");
@@ -1179,7 +1201,10 @@ template <typename Value> struct SpecialCallback : Special {
         /* leave critical section */ {
             unlock_guard<std::mutex> guard(state.mutex);
             PushScope push(scope);
-            callback->backward(opt, guiding_t, id, model);
+            fprintf(stderr,
+                    "In SpecialCallback::backward(maintain_grad_array = %d): callback = %s\n",
+                    (int) maintain_grad_array, typeid(*callback).name());
+            callback->backward(maintain_grad_array, opt, guiding_t, id, model);
         }
         if (edge && state.edges[edge].next_fwd) { // fan-in > 1, update ref
                                                   // counts
@@ -1370,7 +1395,7 @@ template <typename Value> struct GatherEdge : Special {
         }
     }
 
-    void backward(Variable *source, const Variable *target, uint32_t,
+    void backward(Variable *source, const Variable *target, uint32_t, bool,
                   py::object, py::object, int, py::object) const override {
         Value &source_grad = (Value &) source->grad;
         uint32_t size = source->size;
@@ -1490,7 +1515,7 @@ template <typename Value> struct ScatterEdge : Special {
         }
     }
 
-    void backward(Variable *source, const Variable *target, uint32_t,
+    void backward(Variable *source, const Variable *target, uint32_t, bool,
                   py::object, py::object, int, py::object) const override {
         MaskGuard guard(mask_stack);
         source->accum(gather<Value>(target->grad, offset, mask),
@@ -1640,7 +1665,7 @@ T ad_grad(uint32_t index, bool fail_if_missing, bool allow_diff_size) {
     const Variable &v = it->second;
     T result          = v.grad;
 
- #define DEBUG_PRINT
+ //#define DEBUG_PRINT
 #if defined(DEBUG_PRINT)
     fprintf(stderr, "\nIn autodiff.cpp ad_grad():\n");
     fprintf(stderr, "index = %d\n", index);
@@ -2045,14 +2070,16 @@ void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array,
                 set_label(v0->grad, tmp);
         }
 
-//#define DEBUG_PRINT
+#define DEBUG_PRINT
 #if defined(DEBUG_PRINT)
         fprintf(stderr, "v0i = %u, v1i = %u\n", v0i, v1i);
-        fprintf(stderr, "");
         fprintf(stderr, "edge.special = %d\n", (bool)edge.special);
         fprintf(stderr, "mode == %s\n", mode == ADMode::Forward ? "forward" : "backward");
+        if (edge.special)
+            fprintf(stderr, "edge.special: %s\n", typeid(*edge.special).name());
         //if (!edge.special)
         //    fprintf(stderr, "edge.weight = %f\n", edge.weight);
+        fprintf(stderr, "\n");
 #endif
 
         if (unlikely(edge.special)) {
@@ -2060,7 +2087,7 @@ void ad_traverse(ADMode mode, uint32_t flags, bool maintain_grad_array,
             if (mode == ADMode::Forward)
                 edge.special->forward(v0, v1, flags, model);
             else
-                edge.special->backward(v1, v0, flags, opt, guiding_t, id, model);
+                edge.special->backward(v1, v0, flags, maintain_grad_array, opt, guiding_t, id, model);
 
             if (flags & (uint32_t) ADFlag::ClearEdges) {
                 // Edge may have been invalidated by callback, look up once more

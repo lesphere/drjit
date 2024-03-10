@@ -185,7 +185,7 @@ namespace drjit {
         /// Custom graph edge for implementing custom differentiable operations
         struct DRJIT_EXPORT DiffCallback {
             virtual void forward(py::object = py::none()) = 0;
-            virtual void backward(py::object = py::none(),
+            virtual void backward(bool = false, py::object = py::none(),
                                   py::object = py::none(), int = 0,
                                   py::object = py::none()) = 0;
             virtual ~DiffCallback();
